@@ -35,6 +35,10 @@ class FakeRigctld:
                         line, buffer = buffer.split(b"\n", 1)
                         if line == b"m":
                             conn.sendall(f"{self.mode}\n500\n".encode())
+                        elif line == b"s":
+                            conn.sendall(b"0\nNone\n")
+                        elif line == b"i":
+                            conn.sendall(b"0.000000\n")
                         elif line == b"f":
                             conn.sendall(f"{self.freq}\n".encode())
 
@@ -74,7 +78,7 @@ class UsbKeyingFollowsModeTests(unittest.TestCase):
     def make(self):
         key = cwrecv.WfviewKey.__new__(cwrecv.WfviewKey)
         key.radio, key.controller = 0x94, 0xE0
-        key.allow, key.freq = None, 7023000
+        key.allow, key.freq, key.tx_freq = None, 7023000, 7023000
         key.usb_keying = None
         key.mode, key.seen = 0, time.monotonic()
         key.dtr = []
@@ -124,7 +128,17 @@ class FrequencyGuardTests(UsbKeyingFollowsModeTests):
         key.allow = [(7000000, 7040000)]
         key.mode = 0x03
         key._follow_mode()
-        key.freq = 7023000
+        key.freq = key.tx_freq = 7023000
         self.assertTrue(key.cw_mode())
-        key.freq = 7078000  # e.g. another client moved the radio
+        key.freq = key.tx_freq = 7078000  # e.g. another client moved the radio
+        self.assertFalse(key.cw_mode())
+
+    def test_split_is_judged_by_the_transmit_frequency(self):
+        key = self.make()
+        key.allow = [(7000000, 7200000)]
+        key.mode = 0x03
+        key._follow_mode()
+        key.freq, key.tx_freq = 6998000, 7002000   # listening below the edge, transmitting inside
+        self.assertTrue(key.cw_mode())
+        key.freq, key.tx_freq = 7002000, 6999000   # listening inside, transmitting outside
         self.assertFalse(key.cw_mode())
