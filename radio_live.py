@@ -7,7 +7,11 @@ One process owns the serial port for both CI-V and the key line, because
 opening the port a second time would raise DTR and key the transmitter.
 Every changed setting is read first and restored at the end.
 
-Usage: radio_live.py SERIAL_PORT KEY_FILE FREQ_HZ[,FREQ_HZ...]
+Usage: radio_live.py SERIAL_PORT KEY_FILE FREQ_HZ[,FREQ_HZ...] [POWER 0000-0255]
+
+With a power above the minimum, the match is checked first with a short
+carrier at about 10 W; the internal tuner is asked to tune if the SWR is above
+1.5, and the test stops if it stays above 2.
 """
 import argparse
 import json
@@ -81,6 +85,7 @@ class SharedKey:
 def main():
     port, key_file = sys.argv[1], sys.argv[2]
     candidates = [int(value) for value in sys.argv[3].split(",")]
+    power = sys.argv[4] if len(sys.argv) > 4 else "0000"
     link = open_port(port)
     link.timeout = 0.05
     lock = threading.Lock()
@@ -113,6 +118,12 @@ def main():
                 continue
             value = int(data.hex()) if kind != "tx" else data[0]
             samples.append((sent, answered, kind, value))
+            if kind == "swr" and out.down and value > 120:      # 120 on the meter is about 3:1
+                high_swr["count"] += 1
+                if high_swr["count"] >= 3:
+                    notes.append("SWR above 3 while keyed; keying stopped")
+                    out.set(False)
+                    stop["flag"] = True
             if kind == "tx":
                 if value and not out.down and answered - out.changed > 3_000_000_000:
                     tx_since = tx_since or answered
@@ -123,7 +134,24 @@ def main():
                 else:
                     tx_since = None
 
+    high_swr = {"count": 0}
     poller = threading.Thread(target=poll, daemon=True)
+
+    def carrier_swr(seconds=0.5):
+        """Key a short carrier and return the highest SWR meter reading during it."""
+        readings = []
+        link.dtr = True
+        try:
+            end = time.monotonic() + seconds
+            time.sleep(0.15)
+            while time.monotonic() < end:
+                _, _, data = quick(link, b"\x15\x12", lock)
+                if data is not None:
+                    readings.append(int(data.hex()))
+        finally:
+            link.dtr = False
+        time.sleep(0.8)
+        return max(readings) if readings else None
     try:
         tell(link, "060301")                                   # CW, filter 1
         quiet = []
@@ -148,6 +176,27 @@ def main():
         tell(link, "1a05007901")                               # USB Keying (CW) = DTR
         if ask(link, "1c00") != "00":
             raise RuntimeError("radio went to transmit when USB keying was enabled")
+        if power != "0000":
+            report["tuner_before"] = ask(link, "1c01")
+            tell(link, "140a0026")                             # about 10 W for the match check
+            swr = carrier_swr()
+            report["swr_meter_at_10w"] = swr
+            if swr is None:
+                raise RuntimeError("could not read the SWR meter")
+            if swr > 48 and report["tuner_before"] == "01":    # 48 on the meter is about 1.5:1
+                tell(link, "1c0102")                           # ask the internal tuner to tune
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline and ask(link, "1c01") == "02":
+                    time.sleep(0.2)
+                time.sleep(0.8)
+                report["tuner_after_tune"] = ask(link, "1c01")
+                swr = carrier_swr()
+                report["swr_meter_after_tune"] = swr
+            if swr is None or swr > 80:                        # 80 on the meter is about 2:1
+                raise RuntimeError(f"SWR too high for more power (meter {swr})")
+            tell(link, "140a" + power)
+            if ask(link, "140a") != power:
+                raise RuntimeError("radio did not take the power setting")
         polling["run"] = True
         poller.start()
 
