@@ -149,9 +149,13 @@ class SerialLineKey:
 # Receiver
 # --------------------------------------------------------------------------
 
-def receive(args):
+def receive(args, out=None, stop=None):
+    """Run the receiver. `out` and `stop` let a caller supply its own key
+    output and a {"flag": bool} it can set to end the loop."""
     key = load_key(args.key)
-    out = NullKey() if args.output == "null" else SerialLineKey(args.port, args.output)
+    owns_output = out is None
+    if out is None:
+        out = NullKey() if args.output == "null" else SerialLineKey(args.port, args.output)
     try:
         os.sched_setscheduler(0, os.SCHED_FIFO, os.sched_param(10))
         realtime = True
@@ -187,7 +191,8 @@ def receive(args):
     one_way = []                      # wall clock receive - send (needs NTP on both ends)
     previous = None                   # (sender time, actual time) of previous edge
     edges = []
-    stop = {"flag": False}
+    if stop is None:
+        stop = {"flag": False}
 
     def request_stop(*_):
         stop["flag"] = True
@@ -231,8 +236,7 @@ def receive(args):
                     if previous is not None:
                         interval_error.append((actual - previous[1]) - (sent - previous[0]))
                     previous = (sent, actual)
-                    if args.edges:
-                        edges.append([seq, state, sent, actual])
+                    edges.append([seq, state, sent, actual])
                     continue
 
             if args.exit_idle_s and session is not None and now - last_packet > args.exit_idle_s * 1_000_000:
@@ -300,7 +304,9 @@ def receive(args):
                             + tag(key, ACK.pack(ACK_MAGIC, session, seq, received_wall)), sender)
     finally:
         try:
-            out.close()
+            out.set(False)
+            if owns_output:
+                out.close()
         except Exception as error:  # report but still print the summary
             print(json.dumps({"event": "close_error", "error": str(error)}), flush=True)
 
@@ -325,6 +331,7 @@ def receive(args):
     if args.edges:
         with open(args.edges, "w") as handle:
             json.dump(edges, handle)
+    return summary, edges
 
 
 # --------------------------------------------------------------------------
