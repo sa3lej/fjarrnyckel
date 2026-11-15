@@ -15,7 +15,10 @@ carrier at about 10 W; the internal tuner is asked to tune if the SWR is above
 """
 import argparse
 import json
+import pathlib
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import threading
 import time
 

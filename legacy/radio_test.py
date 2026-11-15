@@ -9,9 +9,12 @@ reports TX the test stops at once.
 Usage: radio_test.py SERIAL_PORT ALSA_DEVICE [elements]
 """
 import json
+import pathlib
 import random
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import threading
 import time
 
