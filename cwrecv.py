@@ -393,7 +393,6 @@ class WfviewKey:
     def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=0x94, controller=0xE0, allow=None):
         import threading
         self.allow = allow  # [(low_hz, high_hz), ...] or None: key only inside these ranges
-        self.tx_freq = 0    # where the radio transmits: the split TX VFO when split is on
         self.radio, self.controller = radio, controller
         self.usb_keying = None  # last value written to menu 0079; None = untouched
         self.device = os.path.realpath(port)
@@ -489,7 +488,7 @@ class WfviewKey:
     def _rigctl(self, sock, command):
         sock.sendall(command + b"\n")
         data = b""
-        while not data.endswith(b"\n") or (command in (b"m", b"s") and data.count(b"\n") < 2):
+        while not data.endswith(b"\n") or (command == b"m" and data.count(b"\n") < 2):
             chunk = sock.recv(256)
             if not chunk:
                 raise OSError("rigctld closed")
@@ -509,11 +508,8 @@ class WfviewKey:
                     sock = socket.create_connection(self.rigctld, timeout=2)
                 mode = self._rigctl(sock, b"m")[0].strip()
                 freq = self._rigctl(sock, b"f")[0].strip()
-                split = self._rigctl(sock, b"s")[0].strip() == "1"
-                tx = self._rigctl(sock, b"i")[0].strip() if split else freq
                 self.mode = self.RIG_MODES.get(mode, 0xFF)
                 self.freq = int(float(freq))
-                self.tx_freq = int(float(tx))
                 self.seen = time.monotonic()
                 with self.lock:
                     self._follow_mode()
@@ -526,9 +522,7 @@ class WfviewKey:
             sock.close()
 
     def in_allowed_range(self):
-        """Checked against the transmit frequency, so split operation is judged
-        by where the radio actually transmits, not where it listens."""
-        return self.allow is None or any(low <= self.tx_freq <= high for low, high in self.allow)
+        return self.allow is None or any(low <= self.freq <= high for low, high in self.allow)
 
     def cw_mode(self):
         return (self.fd is not None and self.usb_keying is True and self.mode in MODES_CW
