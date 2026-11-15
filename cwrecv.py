@@ -369,6 +369,142 @@ class SerialKey:
             self.link.close()
 
 
+class WfviewKey:
+    """Keys DTR on the radio port that wfview already holds open, and reads mode
+    and frequency from wfview's rigctld.
+
+    Opening the port a second time would raise DTR and key the transmitter.
+    Instead the receiver duplicates wfview's own descriptor with pidfd_getfd
+    (needs root or CAP_SYS_PTRACE) and only changes the DTR modem line on it.
+    If wfview exits or restarts, the descriptor is released and keying is
+    refused until the new wfview instance holds the port again.
+    """
+
+    RIG_MODES = {"LSB": 0x00, "USB": 0x01, "AM": 0x02, "CW": 0x03, "RTTY": 0x04, "FM": 0x05,
+                 "CWR": 0x07, "RTTYR": 0x08, "PKTLSB": 0x00, "PKTUSB": 0x01, "PKTFM": 0x05}
+
+    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview"):
+        import threading
+        self.device = os.path.realpath(port)
+        self.rigctld = rigctld
+        self.process = process
+        self.name = f"wfview-dtr:{self.device}"
+        self.lock = threading.Lock()
+        self.fd = None
+        self.pid = None
+        self.mode = 0
+        self.freq = 0
+        self.seen = 0.0
+        self.running = True
+        self.thread = threading.Thread(target=self._poll, daemon=True)
+        self.thread.start()
+
+    # -- descriptor -------------------------------------------------------
+    def _holder(self):
+        """(pid, fd number) of the process holding the radio port, or None."""
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f"/proc/{pid}/comm") as comm:
+                    if comm.read().strip() != self.process:
+                        continue
+                for fd in os.listdir(f"/proc/{pid}/fd"):
+                    if os.readlink(f"/proc/{pid}/fd/{fd}") == self.device:
+                        return int(pid), int(fd)
+            except OSError:
+                continue
+        return None
+
+    def _acquire(self):
+        import ctypes
+        holder = self._holder()
+        if holder is None:
+            return
+        pid, number = holder
+        libc = ctypes.CDLL(None, use_errno=True)
+        pidfd = os.pidfd_open(pid)
+        try:
+            fd = libc.syscall(438, pidfd, number, 0)  # pidfd_getfd
+            if fd < 0:
+                raise OSError(ctypes.get_errno(), os.strerror(ctypes.get_errno()))
+        finally:
+            os.close(pidfd)
+        self._dtr(fd, False)
+        self.fd, self.pid = fd, pid
+
+    def _release(self):
+        if self.fd is not None:
+            try:
+                self._dtr(self.fd, False)
+            except OSError:
+                pass
+            os.close(self.fd)
+        self.fd = self.pid = None
+
+    @staticmethod
+    def _dtr(fd, on):
+        import fcntl, struct, termios
+        fcntl.ioctl(fd, termios.TIOCMBIS if on else termios.TIOCMBIC, struct.pack("i", termios.TIOCM_DTR))
+
+    def set(self, down):
+        with self.lock:
+            if self.fd is None:
+                return  # no radio connection: never key
+            try:
+                self._dtr(self.fd, down)
+            except OSError:
+                self._release()
+
+    # -- rig state ----------------------------------------------------------
+    def _rigctl(self, sock, command):
+        sock.sendall(command + b"\n")
+        data = b""
+        while not data.endswith(b"\n") or (command == b"m" and data.count(b"\n") < 2):
+            chunk = sock.recv(256)
+            if not chunk:
+                raise OSError("rigctld closed")
+            data += chunk
+        return data.decode().split("\n")
+
+    def _poll(self):
+        sock = None
+        while self.running:
+            try:
+                with self.lock:
+                    if self.pid is not None and not os.path.exists(f"/proc/{self.pid}"):
+                        self._release()
+                    if self.fd is None:
+                        self._acquire()
+                if sock is None:
+                    sock = socket.create_connection(self.rigctld, timeout=2)
+                mode = self._rigctl(sock, b"m")[0].strip()
+                freq = self._rigctl(sock, b"f")[0].strip()
+                self.mode = self.RIG_MODES.get(mode, 0xFF)
+                self.freq = int(float(freq))
+                self.seen = time.monotonic()
+            except (OSError, ValueError):
+                if sock is not None:
+                    sock.close()
+                    sock = None
+            time.sleep(0.5)
+        if sock is not None:
+            sock.close()
+
+    def cw_mode(self):
+        return self.fd is not None and self.mode in MODES_CW and time.monotonic() - self.seen < 3.0
+
+    def mode_and_freq(self):
+        fresh = time.monotonic() - self.seen < 3.0
+        return (self.mode, self.freq) if fresh else (0, 0)
+
+    def close(self):
+        self.running = False
+        self.thread.join(timeout=2)
+        with self.lock:
+            self._release()
+
+
 def now_us():
     return time.monotonic_ns() // 1000
 
@@ -379,13 +515,21 @@ def main():
     parser.add_argument("--bind", default="::")
     parser.add_argument("--port", type=int, default=7373, help="UDP port")
     parser.add_argument("--serial", help="radio serial port; keys DTR and requires the rig to be in CW")
+    parser.add_argument("--wfview", nargs="?", const="127.0.0.1:4533", metavar="HOST:PORT",
+                        help="share the --serial port with a running wfview: key DTR on wfview's own descriptor, read the rig over its rigctld")
     parser.add_argument("--delay-ms", type=float, default=25.0, help="playout delay when the client asks for none")
     parser.add_argument("--link-timeout-ms", type=float, default=300.0)
     parser.add_argument("--max-key-down-ms", type=float, default=5000.0)
     parser.add_argument("--exit-idle-s", type=float, default=0.0, help="test use: exit after this long without packets")
     args = parser.parse_args()
 
-    out = SerialKey(args.serial) if args.serial else NullKey()
+    if args.wfview and not args.serial:
+        parser.error("--wfview needs --serial to identify the radio port")
+    if args.wfview:
+        host, _, rport = args.wfview.rpartition(":")
+        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)))
+    else:
+        out = SerialKey(args.serial) if args.serial else NullKey()
     core = Receiver(proto.load_key(args.key), out, delay_ms=args.delay_ms, link_timeout_ms=args.link_timeout_ms,
                     max_key_down_ms=args.max_key_down_ms, rig=out if args.serial else None)
     try:
