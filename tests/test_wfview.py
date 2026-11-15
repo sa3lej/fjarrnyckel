@@ -74,6 +74,7 @@ class UsbKeyingFollowsModeTests(unittest.TestCase):
     def make(self):
         key = cwrecv.WfviewKey.__new__(cwrecv.WfviewKey)
         key.radio, key.controller = 0x94, 0xE0
+        key.allow, key.freq = None, 7023000
         key.usb_keying = None
         key.mode, key.seen = 0, time.monotonic()
         key.dtr = []
@@ -115,3 +116,15 @@ class UsbKeyingFollowsModeTests(unittest.TestCase):
         self.assertEqual(self.frames(), bytes.fromhex("FEFE94E01A05007900FD"))
         self.assertIsNone(key.fd)
         os.close(self.read)
+
+
+class FrequencyGuardTests(UsbKeyingFollowsModeTests):
+    def test_keying_refused_outside_allowed_range(self):
+        key = self.make()
+        key.allow = [(7000000, 7040000)]
+        key.mode = 0x03
+        key._follow_mode()
+        key.freq = 7023000
+        self.assertTrue(key.cw_mode())
+        key.freq = 7078000  # e.g. another client moved the radio
+        self.assertFalse(key.cw_mode())

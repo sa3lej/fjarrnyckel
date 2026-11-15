@@ -390,8 +390,9 @@ class WfviewKey:
     RIG_MODES = {"LSB": 0x00, "USB": 0x01, "AM": 0x02, "CW": 0x03, "RTTY": 0x04, "FM": 0x05,
                  "CWR": 0x07, "RTTYR": 0x08, "PKTLSB": 0x00, "PKTUSB": 0x01, "PKTFM": 0x05}
 
-    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=0x94, controller=0xE0):
+    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=0x94, controller=0xE0, allow=None):
         import threading
+        self.allow = allow  # [(low_hz, high_hz), ...] or None: key only inside these ranges
         self.radio, self.controller = radio, controller
         self.usb_keying = None  # last value written to menu 0079; None = untouched
         self.device = os.path.realpath(port)
@@ -520,9 +521,12 @@ class WfviewKey:
         if sock is not None:
             sock.close()
 
+    def in_allowed_range(self):
+        return self.allow is None or any(low <= self.freq <= high for low, high in self.allow)
+
     def cw_mode(self):
         return (self.fd is not None and self.usb_keying is True and self.mode in MODES_CW
-                and time.monotonic() - self.seen < 3.0)
+                and self.in_allowed_range() and time.monotonic() - self.seen < 3.0)
 
     def mode_and_freq(self):
         fresh = time.monotonic() - self.seen < 3.0
@@ -545,6 +549,8 @@ def main():
     parser.add_argument("--bind", default="::")
     parser.add_argument("--port", type=int, default=7373, help="UDP port")
     parser.add_argument("--serial", help="radio serial port; keys DTR and requires the rig to be in CW")
+    parser.add_argument("--allow-freq", action="append", metavar="LOW-HIGH",
+                        help="only key while the rig frequency (Hz) is inside this range; repeatable")
     parser.add_argument("--wfview", nargs="?", const="127.0.0.1:4533", metavar="HOST:PORT",
                         help="share the --serial port with a running wfview: key DTR on wfview's own descriptor, read the rig over its rigctld")
     parser.add_argument("--delay-ms", type=float, default=25.0, help="playout delay when the client asks for none")
@@ -557,7 +563,8 @@ def main():
         parser.error("--wfview needs --serial to identify the radio port")
     if args.wfview:
         host, _, rport = args.wfview.rpartition(":")
-        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)))
+        allow = [tuple(int(v) for v in r.split("-")) for r in args.allow_freq] if args.allow_freq else None
+        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)), allow=allow)
     else:
         out = SerialKey(args.serial) if args.serial else NullKey()
     core = Receiver(proto.load_key(args.key), out, delay_ms=args.delay_ms, link_timeout_ms=args.link_timeout_ms,
