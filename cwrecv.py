@@ -375,7 +375,9 @@ class WfviewKey:
 
     Opening the port a second time would raise DTR and key the transmitter.
     Instead the receiver duplicates wfview's own descriptor with pidfd_getfd
-    (needs root or CAP_SYS_PTRACE) and only changes the DTR modem line on it.
+    and only changes the DTR modem line on it. Run it as the same user as
+    wfview; that is all pidfd_getfd needs (the kernel's ptrace rule: own
+    processes only, unless Yama's ptrace_scope restricts it further).
     If wfview exits or restarts, the descriptor is released and keying is
     refused until the new wfview instance holds the port again.
     """
