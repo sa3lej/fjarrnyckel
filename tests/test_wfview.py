@@ -65,3 +65,53 @@ class WfviewKeyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UsbKeyingFollowsModeTests(unittest.TestCase):
+    """Selecting CW in wfview turns the radio's USB keying on; leaving CW or
+    stopping turns it off. Frames are checked byte for byte."""
+
+    def make(self):
+        key = cwrecv.WfviewKey.__new__(cwrecv.WfviewKey)
+        key.radio, key.controller = 0x94, 0xE0
+        key.usb_keying = None
+        key.mode, key.seen = 0, time.monotonic()
+        key.dtr = []
+        key._dtr = lambda fd, on: key.dtr.append(on)
+        read, write = os.pipe()
+        key.fd, key.pid, self.read = write, None, read
+        return key
+
+    def frames(self):
+        os.set_blocking(self.read, False)
+        try:
+            return os.read(self.read, 4096)
+        except BlockingIOError:
+            return b""
+
+    def test_cw_enables_dtr_keying_after_forcing_dtr_low(self):
+        key = self.make()
+        key.mode = 0x01
+        key._follow_mode()
+        self.assertEqual(self.frames(), b"", "not in CW: menu left untouched")
+        key.mode = 0x03
+        key._follow_mode()
+        self.assertEqual(self.frames(), bytes.fromhex("FEFE94E01A05007901FD"))
+        self.assertEqual(key.dtr, [False])
+        self.assertTrue(key.cw_mode())
+        key._follow_mode()
+        self.assertEqual(self.frames(), b"", "no repeat while still in CW")
+        key.mode = 0x01
+        key._follow_mode()
+        self.assertEqual(self.frames(), bytes.fromhex("FEFE94E01A05007900FD"))
+        self.assertFalse(key.cw_mode())
+
+    def test_release_turns_usb_keying_off(self):
+        key = self.make()
+        key.mode = 0x07
+        key._follow_mode()
+        self.frames()
+        key._release()
+        self.assertEqual(self.frames(), bytes.fromhex("FEFE94E01A05007900FD"))
+        self.assertIsNone(key.fd)
+        os.close(self.read)

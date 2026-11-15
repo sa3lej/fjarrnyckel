@@ -380,13 +380,20 @@ class WfviewKey:
     processes only, unless Yama's ptrace_scope restricts it further).
     If wfview exits or restarts, the descriptor is released and keying is
     refused until the new wfview instance holds the port again.
+
+    Selecting CW (or CW-R) in wfview is the trigger: the receiver then turns
+    the radio's "USB Keying (CW)" menu to DTR over CI-V, and back to OFF when
+    the radio leaves CW or the receiver stops. DTR is forced low before the
+    menu is enabled, so enabling it never keys the radio by itself.
     """
 
     RIG_MODES = {"LSB": 0x00, "USB": 0x01, "AM": 0x02, "CW": 0x03, "RTTY": 0x04, "FM": 0x05,
                  "CWR": 0x07, "RTTYR": 0x08, "PKTLSB": 0x00, "PKTUSB": 0x01, "PKTFM": 0x05}
 
-    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview"):
+    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=0x94, controller=0xE0):
         import threading
+        self.radio, self.controller = radio, controller
+        self.usb_keying = None  # last value written to menu 0079; None = untouched
         self.device = os.path.realpath(port)
         self.rigctld = rigctld
         self.process = process
@@ -439,10 +446,28 @@ class WfviewKey:
         if self.fd is not None:
             try:
                 self._dtr(self.fd, False)
+                if self.usb_keying:
+                    self._write_usb_keying(False)
             except OSError:
                 pass
             os.close(self.fd)
         self.fd = self.pid = None
+        self.usb_keying = None
+
+    def _write_usb_keying(self, on):
+        """CI-V 1A 05 00 79: USB Keying (CW), 00 = OFF, 01 = DTR. One write()
+        per frame, so it cannot interleave with wfview's own frames."""
+        frame = bytes([0xFE, 0xFE, self.radio, self.controller, 0x1A, 0x05, 0x00, 0x79, 0x01 if on else 0x00, 0xFD])
+        if on:
+            self._dtr(self.fd, False)
+        os.write(self.fd, frame)
+        self.usb_keying = on
+
+    def _follow_mode(self):
+        """Enable DTR keying while the radio is in CW, disable it otherwise."""
+        want = self.mode in MODES_CW
+        if self.fd is not None and want != bool(self.usb_keying) and not (self.usb_keying is None and not want):
+            self._write_usb_keying(want)
 
     @staticmethod
     def _dtr(fd, on):
@@ -485,6 +510,8 @@ class WfviewKey:
                 self.mode = self.RIG_MODES.get(mode, 0xFF)
                 self.freq = int(float(freq))
                 self.seen = time.monotonic()
+                with self.lock:
+                    self._follow_mode()
             except (OSError, ValueError):
                 if sock is not None:
                     sock.close()
@@ -494,7 +521,8 @@ class WfviewKey:
             sock.close()
 
     def cw_mode(self):
-        return self.fd is not None and self.mode in MODES_CW and time.monotonic() - self.seen < 3.0
+        return (self.fd is not None and self.usb_keying is True and self.mode in MODES_CW
+                and time.monotonic() - self.seen < 3.0)
 
     def mode_and_freq(self):
         fresh = time.monotonic() - self.seen < 3.0
