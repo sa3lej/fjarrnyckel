@@ -68,6 +68,10 @@ On some DevKitC-1 clones the 5V pin gives no USB power until the board's
 python3 -m unittest discover -s tests
 ```
 
+## Licence
+
+MIT. See [LICENSE](LICENSE). The designs in `enclosure/` and `vfo/` are under the same licence.
+
 ## Thanks
 
 The rules of the keying link are modelled on OK1HRA's Paddle2IP. The packet
