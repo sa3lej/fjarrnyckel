@@ -10,3 +10,25 @@ CONFIG_HTTPD_MAX_REQ_HDR_LEN=2048
 CONFIG_HTTPD_MAX_URI_LEN=1024
 # A new firmware that does not start properly is replaced by the previous one at the next restart.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# Tailscale (MicroLink) keeps its large buffers in the module's extra memory (PSRAM).
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+CONFIG_LWIP_MAX_SOCKETS=16
+CONFIG_LWIP_SO_RCVBUF=y
+CONFIG_LWIP_TCPIP_RECVMBOX_SIZE=64
+CONFIG_MBEDTLS_CHACHA20_C=y
+CONFIG_MBEDTLS_POLY1305_C=y
+CONFIG_MBEDTLS_CHACHAPOLY_C=y
+CONFIG_MBEDTLS_HKDF_C=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
+# Relay through Frankfurt when no direct path exists (the default is Dallas).
+CONFIG_ML_DERP_REGION=4
+# The box confirms a new firmware itself at start (update.c); MicroLink must not also restart it.
+# CONFIG_ML_OTA_ROLLBACK is not set
+# The peer list kept in flash has to fit the 24 KB settings area next to our own settings.
+CONFIG_ML_NVS_MAX_PEERS=16

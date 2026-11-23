@@ -53,7 +53,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;heigh
 input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3cf,var(--brass) 60%,#9a7222);border:1px solid #6d4f12}
 .hint{color:var(--dim);font-size:.85rem;margin:.9rem 0 0}.hint:empty{display:none}
 .mini{display:flex;gap:.8rem;align-items:center;background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;margin-bottom:.2rem}
-#linkState{font-weight:600}#linkDetail{color:var(--dim);font-size:.88rem}#linkDetail:empty{display:none}
+#linkState,#tsState{font-weight:600}#linkDetail,#tsDetail{color:var(--dim);font-size:.88rem}#linkDetail:empty,#tsDetail:empty{display:none}#tsKeyBox label{margin-top:.9rem}
 #paddleBox{margin-top:1.1rem}
 footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
 .secret{-webkit-text-security:disc}.secret.shown{-webkit-text-security:none}
@@ -99,6 +99,19 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
   <button class="main" id="wRetry" type="button"></button></div>
  <div id="wLost" hidden class="center"><div class="tick wait">…</div><div class="strong" data-t="wLostT"></div><p class="hint" id="wLostD"></p>
   <a class="main link" href="http://fjarrnyckel.local/">fjarrnyckel.local</a></div>
+</div>
+
+<h2>Tailscale</h2>
+<div class="card" id="tsCard">
+ <div class="mini"><span class="lamp" id="tsLamp"></span><div><div id="tsState"></div><div id="tsDetail"></div></div></div>
+ <div id="tsOffBox" hidden><p class="hint" data-t="tsWhy"></p>
+  <div id="tsKeyBox" hidden><label for="tsKey" data-t="tsKey"></label>
+   <div class="pw"><input id="tsKey" class="secret" type="text" name="fn-tskey" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"><button id="showts" type="button"></button></div>
+   <p class="hint" data-t="tsKeyHint"></p></div>
+  <button class="main" id="tsOn" type="button"></button>
+  <button class="quiet" id="tsKeyToggle" type="button" style="margin-top:.6rem"></button></div>
+ <div id="tsLoginBox" hidden><a class="main link" id="tsLogin" target="_blank" rel="noopener"></a><p class="hint" data-t="tsLoginHint"></p></div>
+ <div id="tsOnBox" hidden><div class="two"><button class="quiet" id="tsOff" type="button"></button><button class="quiet" id="tsForget" type="button"></button></div></div>
 </div>
 
 <h2 data-t="link"></h2>
@@ -154,9 +167,13 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  wNowD:"The box's address: {ip}",wBusyT:"Connecting to {s}…",wBusyD:"This can take half a minute. Your phone may lose the setup network for a moment.",
  wDoneT:"Connected to {s}",wDoneD:"The setup network switches off in a minute. Put this phone on {s} and open the page again at:",
  wFailT:"Could not connect to {s}",wRetry:"Try again",wLostT:"Lost contact with the box",wLostD:"That usually means it has joined {s}. Put this phone on {s} and open the address below. If the setup network comes back, the password was wrong.",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
- link:"Radio link",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file.",lsave:"Save",lsaved:"Saved",
+ link:"Radio link",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file. With Tailscale on, use the computer's Tailscale name or its 100.x address.",lsave:"Save",lsaved:"Saved",
  lOff:"Not set up",lOffD:"Enter the receiver's address and the shared key.",lNoWifi:"Waiting for Wi-Fi",lNotFound:"The address was not found",lNotFoundD:"Check the receiver address.",lNoAnswer:"No answer from the receiver",lNoAnswerD:"Check that the receiver is running and that the address, port and key match.",
  lWaitCw:"Connected. The radio is not in CW",lWaitCwD:"Select CW on the radio to switch keying on.",lWait:"Connected. Waiting for the receiver",lReady:"Ready. Your key goes to the radio",rt:"round trip {n} ms",lateLost:"{a} late, {b} lost",
+ tsWhy:"Tailscale connects the box to the computer by the radio across the internet, with nothing to open in a router. Free for personal use.",tsOn:"Connect to Tailscale",tsKeyToggle:"I have an auth key",tsKey:"Auth key",tsKeyHint:"Optional. Without a key you sign in with your Tailscale account in the next step.",
+ tsOffS:"Off",tsNoWifi:"Waiting for Wi-Fi",tsCon:"Connecting to Tailscale…",tsNeed:"Sign in to add the box",tsNeedD:"Only needed once. The box remembers it.",tsLogin:"Sign in to Tailscale",tsLoginHint:"Opens Tailscale's sign-in page. This device needs internet access.",
+ tsOk:"Connected to Tailscale",tsOkD:"The box's Tailscale address: {ip}",tsFail:"Tailscale did not accept the box",tsFailD:"The key may have expired, or the box was removed from your tailnet. Start over to sign in again.",tsErr:"Tailscale could not start",tsErrD:"The box tries again by itself.",tsCrash:"Switched off: the box restarted while Tailscale was starting.",
+ tsOff:"Switch off",tsForget:"Start over",tsForgetAsk:"Erase the box's Tailscale sign-in? It then has to be added again.",lNoTs:"Waiting for Tailscale",lNoTsD:"The receiver's address is on Tailscale.",via:"through Tailscale",
  software:"Software",version:"Version",pick:"Install a firmware file…",upBusy:"Installing… {n} %",upDone:"Installed. The box is restarting…",upFail:"The update failed: ",
  upErr:{"the box could not prepare for the update":"the box could not prepare for it.","the upload was interrupted":"the upload was interrupted.","this is not a Fjarrnyckel firmware file":"this is not a Fjärrnyckel firmware file.","the file is damaged or not a Fjarrnyckel firmware file":"the file is damaged or is not a Fjärrnyckel firmware file.","the new firmware could not be selected":"the new firmware could not be selected."},
  hintS:"The tone follows your key exactly.",mode:"Keyer mode",hintA:"Mode A: when you let go of a squeeze, the element in progress is the last one.",hintB:"Mode B: when you let go of a squeeze, one more element follows.",sidetone:"Sidetone",pitch:"Pitch",volume:"Volume",beep:"Play a test tone",foot:"remote CW keying",lang:"Svenska",
@@ -168,9 +185,13 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  wNowD:"Lådans adress: {ip}",wBusyT:"Ansluter till {s}…",wBusyD:"Det kan ta en halv minut. Telefonen kan tappa inställningsnätverket en stund.",
  wDoneT:"Ansluten till {s}",wDoneD:"Inställningsnätverket stängs av om en minut. Koppla telefonen till {s} och öppna sidan igen på:",
  wFailT:"Kunde inte ansluta till {s}",wRetry:"Försök igen",wLostT:"Tappade kontakten med lådan",wLostD:"Det betyder oftast att den har anslutit till {s}. Koppla telefonen till {s} och öppna adressen nedan. Om inställningsnätverket kommer tillbaka var lösenordet fel.",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
- link:"Radiolänk",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil.",lsave:"Spara",lsaved:"Sparat",
+ link:"Radiolänk",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil. Med Tailscale på: använd datorns Tailscale-namn eller dess 100.x-adress.",lsave:"Spara",lsaved:"Sparat",
  lOff:"Inte inställd",lOffD:"Ange mottagarens adress och den delade nyckeln.",lNoWifi:"Väntar på Wi-Fi",lNotFound:"Adressen hittades inte",lNotFoundD:"Kontrollera mottagarens adress.",lNoAnswer:"Inget svar från mottagaren",lNoAnswerD:"Kontrollera att mottagaren är igång och att adress, port och nyckel stämmer.",
  lWaitCw:"Ansluten. Radion står inte i CW",lWaitCwD:"Välj CW på radion för att slå på nycklingen.",lWait:"Ansluten. Väntar på mottagaren",lReady:"Klar. Din nyckel går till radion",rt:"tur och retur {n} ms",lateLost:"{a} sena, {b} tappade",
+ tsWhy:"Tailscale kopplar ihop lådan med datorn vid radion över internet, utan att något behöver öppnas i en router. Gratis för privat bruk.",tsOn:"Anslut till Tailscale",tsKeyToggle:"Jag har en auth-nyckel",tsKey:"Auth-nyckel",tsKeyHint:"Valfritt. Utan nyckel loggar du in med ditt Tailscale-konto i nästa steg.",
+ tsOffS:"Avstängt",tsNoWifi:"Väntar på Wi-Fi",tsCon:"Ansluter till Tailscale…",tsNeed:"Logga in för att lägga till lådan",tsNeedD:"Behövs bara en gång. Lådan kommer ihåg det.",tsLogin:"Logga in på Tailscale",tsLoginHint:"Öppnar Tailscales inloggningssida. Den här enheten behöver internet.",
+ tsOk:"Ansluten till Tailscale",tsOkD:"Lådans Tailscale-adress: {ip}",tsFail:"Tailscale godtog inte lådan",tsFailD:"Nyckeln kan ha gått ut, eller så har lådan tagits bort ur ditt tailnet. Börja om för att logga in igen.",tsErr:"Tailscale kunde inte starta",tsErrD:"Lådan försöker igen av sig själv.",tsCrash:"Avstängt: lådan startade om när Tailscale skulle starta.",
+ tsOff:"Stäng av",tsForget:"Börja om",tsForgetAsk:"Radera lådans Tailscale-inloggning? Den måste sedan läggas till igen.",lNoTs:"Väntar på Tailscale",lNoTsD:"Mottagarens adress ligger på Tailscale.",via:"via Tailscale",
  software:"Programvara",version:"Version",pick:"Installera en programvarufil…",upBusy:"Installerar… {n} %",upDone:"Installerat. Lådan startar om…",upFail:"Uppdateringen misslyckades: ",
  upErr:{"the box could not prepare for the update":"lådan kunde inte förbereda den.","the upload was interrupted":"uppladdningen avbröts.","this is not a Fjarrnyckel firmware file":"det här är ingen programvarufil för Fjärrnyckel.","the file is damaged or not a Fjarrnyckel firmware file":"filen är skadad eller ingen programvarufil för Fjärrnyckel.","the new firmware could not be selected":"den nya programvaran kunde inte väljas."},
  hintS:"Tonen följer din nyckel exakt.",mode:"Nycklingssätt",hintA:"Läge A: när du släpper ett kläm blir det pågående tecknet det sista.",hintB:"Läge B: när du släpper ett kläm följer ett tecken till.",sidetone:"Medhörning",pitch:"Tonhöjd",volume:"Volym",beep:"Spela en testton",foot:"fjärrnyckling av CW",lang:"English",
@@ -185,16 +206,22 @@ function texts(){document.documentElement.lang=L;document.querySelectorAll("[dat
  $("lang").textContent=t("lang");$("scan").textContent=t(scanState);$("join").textContent=t("join");$("beep").textContent=t("beep");
  $("showpw").textContent=t($("pass").classList.contains("shown")?"hide":"show");$("showkey").textContent=t($("lkey").classList.contains("shown")?"hide":"show");
  for(const k of["wOther","wBack","wChange","wRetry"])$(k).textContent=t(k);paintWifi();
- $("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
+ for(const k of["tsOn","tsKeyToggle","tsLogin","tsOff","tsForget"])$(k).textContent=t(k);$("showts").textContent=t($("tsKey").classList.contains("shown")?"hide":"show");$("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
 function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";return}
  $("ver").textContent=S.version||"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
  const mhz=S.freq?(S.freq/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:3,maximumFractionDigits:3})+" MHz":"";
- const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",(S.late||S.lost)?t("lateLost").replace("{a}",S.late).replace("{b}",S.lost):""].filter(x=>x).join(" · ");
+ const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",S.linkTailscale?t("via"):"",(S.late||S.lost)?t("lateLost").replace("{a}",S.late).replace("{b}",S.lost):""].filter(x=>x).join(" · ");
  const set=(c,a,b)=>{lamp.className="lamp "+c;st.textContent=t(a);d.textContent=b||""};
  if(S.link=="ready")set("ok","lReady",extra);else if(S.link=="waiting")S.rigValid&&!S.cw?set("busy","lWaitCw",t("lWaitCwD")):set("busy","lWait",extra);
  else if(S.link=="no-answer")set("bad","lNoAnswer",t("lNoAnswerD"));else if(S.link=="not-found")set("bad","lNotFound",t("lNotFoundD"));
- else if(S.link=="no-wifi")set("","lNoWifi","");else set("","lOff",t("lOffD"))}
-function paint(){paintLink();const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
+ else if(S.link=="no-tailscale")set("busy","lNoTs",t("lNoTsD"));else if(S.link=="no-wifi")set("","lNoWifi","");else set("","lOff",t("lOffD"))}
+function paintTs(){const lamp=$("tsLamp"),set=(c,a,b)=>{lamp.className="lamp "+c;$("tsState").textContent=a?t(a):"…";$("tsDetail").textContent=b||""};
+ const s=S?S.ts:"";$("tsOffBox").hidden=s!="off";$("tsLoginBox").hidden=s!="needs-login";$("tsOnBox").hidden=!S||s=="off";
+ if(s=="needs-login"&&$("tsLogin").getAttribute("href")!=S.tsLogin)$("tsLogin").href=S.tsLogin;
+ if(!S)set("","","");else if(s=="connected")set("ok","tsOk",t("tsOkD").replace("{ip}",S.tsIp));else if(s=="needs-login")set("busy","tsNeed",t("tsNeedD"));
+ else if(s=="connecting")set("busy","tsCon","");else if(s=="no-wifi")set("","tsNoWifi","");else if(s=="auth-failed")set("bad","tsFail",t("tsFailD"));
+ else if(s=="error")set("bad","tsErr",t("tsErrD"));else S.tsCrashed?set("bad","tsOffS",t("tsCrash")):set("","tsOffS","")}
+function paint(){paintLink();paintTs();const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
  const f=(k)=>t(k).replace("{s}",S.ssid).replace("{ip}",S.ip);
  if(S.wifi=="connected"){lamp.className="lamp ok";$("state").textContent=f("sOk");$("detail").textContent=f("dOk")+(S.setupNetwork?t("dAp"):"")}
  else if(S.wifi=="connecting"){lamp.className="lamp busy";$("state").textContent=f("sCon");$("detail").textContent=""}
@@ -211,6 +238,12 @@ $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
 $("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};
 $("lsave").onclick=async()=>{await post("/api/link",{host:$("lhost").value.trim(),port:$("lport").value.trim(),key:$("lkey").value.trim()}).catch(()=>{});$("lkey").value="";$("lsave").textContent=t("lsaved");setTimeout(texts,1500);status()};
+$("showts").onclick=()=>{$("tsKey").classList.toggle("shown");texts()};
+$("tsKeyToggle").onclick=()=>{$("tsKeyBox").hidden=false;$("tsKeyToggle").hidden=true;$("tsKey").focus()};
+const tsPost=async d=>{await post("/api/tailscale",d).catch(()=>{});$("tsKey").value="";status()};
+$("tsOn").onclick=()=>tsPost({on:1,key:$("tsKey").value.trim()});
+$("tsOff").onclick=()=>tsPost({on:0});
+$("tsForget").onclick=()=>{if(confirm(t("tsForgetAsk")))tsPost({on:1,forget:1})};
 $("pick").onclick=()=>$("fw").click();
 $("fw").onchange=()=>{const f=$("fw").files[0];if(!f)return;const x=new XMLHttpRequest(),m=$("upMsg");x.open("POST","/api/update");
  x.upload.onprogress=e=>{m.textContent=t("upBusy").replace("{n}",Math.round(e.loaded/e.total*100))};

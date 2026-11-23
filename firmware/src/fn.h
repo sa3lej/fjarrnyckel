@@ -25,6 +25,8 @@ typedef struct {
   uint16_t link_port;
   char link_key[96];    // the shared key, the same text as the receiver's key file
   uint8_t iambic_b;     // paddle: 1 = iambic mode B, 0 = mode A
+  uint8_t ts_on;        // 1 = join the owner's Tailscale network
+  char ts_key[128];     // optional Tailscale auth key; empty = sign in through the setup page
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -49,18 +51,31 @@ void net_join(const char *ssid, const char *pass);   // save and try new Wi-Fi d
 int net_scan(char *json, int size);       // writes a JSON array of networks in range
 
 // ---- the keying link to the receiver ----
-typedef enum { LINK_OFF, LINK_NO_WIFI, LINK_NOT_FOUND, LINK_NO_ANSWER, LINK_WAITING, LINK_READY } link_state_t;
+typedef enum { LINK_OFF, LINK_NO_WIFI, LINK_NO_TAILSCALE, LINK_NOT_FOUND, LINK_NO_ANSWER, LINK_WAITING, LINK_READY } link_state_t;
 typedef struct {
   link_state_t state;
   int rtt_ms;            // round trip to the receiver, -1 when unknown
   uint32_t freq_hz;      // the radio's frequency, 0 when unknown
   bool rig_valid, cw;    // the receiver knows the radio's mode; the radio is in CW
   uint16_t late, lost;   // key edges that reached the receiver too late, or not at all
+  bool tailscale;        // the link runs through Tailscale
 } link_info_t;
 void link_start(void);
 void link_restart(void);                  // after the link settings changed
 void link_edge(int64_t t_us, bool down);  // called by the keyer on every key change
 link_info_t link_info(void);
+bool link_uses_tailscale(void);          // the link holds a socket on the Tailscale network
+
+// ---- Tailscale ----
+typedef enum { TS_OFF, TS_NO_WIFI, TS_CONNECTING, TS_NEEDS_LOGIN, TS_CONNECTED, TS_AUTH_FAILED, TS_ERROR } ts_state_t;
+void ts_start(void);
+void ts_apply(bool forget_identity);      // after the Tailscale settings changed; true also erases the box's identity there
+ts_state_t ts_state(void);
+bool ts_crashed(void);                    // Tailscale was switched off because the box crashed while starting it
+const char *ts_ip(void);                  // our address on the tailnet, "" when not connected
+const char *ts_login_url(void);           // where the owner signs in to add the box, "" when not asked for
+void *ts_handle(void);                    // the MicroLink handle while the link may use it, else NULL
+bool ts_is_tailnet_address(uint32_t host_order);
 
 void web_start(void);
 void update_started_ok(void);             // tells the bootloader this firmware works

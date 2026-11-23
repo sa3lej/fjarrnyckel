@@ -32,7 +32,7 @@ Work in progress. Honest state of each part:
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
 | Box firmware (`firmware/`) | Wi-Fi setup, setup page, keyer and sidetone run on hardware. The keying link is written and tested on a computer but not yet in the firmware. |
-| Tailscale in the box | Planned. |
+| Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. Not yet tested on hardware. |
 | Updates over Wi-Fi | Planned. |
 | Enclosure (`enclosure/`) | Draft; will change. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |

@@ -19,6 +19,7 @@ void settings_load(void) {
   nvs_close(h);
   settings.ssid[sizeof settings.ssid - 1] = settings.pass[sizeof settings.pass - 1] = 0;
   settings.link_host[sizeof settings.link_host - 1] = settings.link_key[sizeof settings.link_key - 1] = 0;
+  settings.ts_key[sizeof settings.ts_key - 1] = 0;
 }
 
 void settings_save(void) {

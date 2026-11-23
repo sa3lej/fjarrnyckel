@@ -10,6 +10,7 @@
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
 #include "psa/crypto.h"
+#include "microlink.h"
 #include "cwl2.h"
 #include "fn.h"
 
@@ -43,50 +44,84 @@ void link_edge(int64_t t_us, bool down) {
   if (task) xTaskNotifyGive(task);         // wake the link at once: the edge goes out without waiting for the next tick
 }
 
-static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = false; } info = i; } }
+static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; } info = i; } }
 
-static void send_packet(int sock, int64_t now) {
+// The receiver is reached either straight over the network (a UDP socket) or through Tailscale.
+typedef struct { int sock; microlink_udp_socket_t *ts; uint32_t ts_ip; uint16_t port; } path_t;
+static volatile bool on_tailscale;
+bool link_uses_tailscale(void) { return on_tailscale; }
+
+static void send_packet(path_t *p, int64_t now) {
   uint8_t pkt[CWL2_MAX_PACKET];
   size_t n = cwl2_packet(&client, (uint64_t)now, pkt);
-  send(sock, pkt, n, 0);
+  if (p->ts) microlink_udp_send(p->ts, p->ts_ip, p->port, pkt, n); else send(p->sock, pkt, n, 0);
 }
 
-// Runs one session with the receiver; returns when the settings change or Wi-Fi drops.
+static int receive(path_t *p, uint8_t *buf, size_t size) {
+  if (!p->ts) return recv(p->sock, buf, size, 0);
+  for (;;) {
+    uint32_t from = 0; size_t n = size;
+    if (microlink_udp_recv(p->ts, &from, NULL, buf, &n, 0) != ESP_OK) return -1;
+    if (from == p->ts_ip) return (int)n;
+  }
+}
+
+static void pause_as(link_state_t s) { set_state(s); vTaskDelay(pdMS_TO_TICKS(500)); }
+
+// Runs one session with the receiver; returns when the settings change or the network drops.
 static void session(uint32_t gen) {
-  char port[8]; snprintf(port, sizeof port, "%u", settings.link_port);
-  struct addrinfo hints = { .ai_socktype = SOCK_DGRAM }, *res = NULL;
-  if (getaddrinfo(settings.link_host, port, &hints, &res) || !res) { set_state(LINK_NOT_FOUND); vTaskDelay(pdMS_TO_TICKS(2000)); return; }
-  int sock = socket(res->ai_family, SOCK_DGRAM, 0);
-  int ok = sock >= 0 && connect(sock, res->ai_addr, res->ai_addrlen) == 0;
-  freeaddrinfo(res);
-  if (!ok) { if (sock >= 0) close(sock); set_state(LINK_NOT_FOUND); vTaskDelay(pdMS_TO_TICKS(2000)); return; }
-  fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
+  path_t path = { .sock = -1, .port = settings.link_port };
+  microlink_t *ml = NULL;
+  struct in_addr lit; bool literal = inet_aton(settings.link_host, &lit);
+  if (settings.ts_on) {
+    // A tailnet address, or the name of a device on the tailnet, goes through Tailscale. Anything else goes direct.
+    on_tailscale = true;                     // said before looking at the handle, so it is never taken away under us
+    ml = ts_handle();
+    if (ml) {
+      if (literal) path.ts_ip = ts_is_tailnet_address(ntohl(lit.s_addr)) ? ntohl(lit.s_addr) : 0;
+      else path.ts_ip = microlink_resolve(ml, settings.link_host);
+      if (path.ts_ip) path.ts = microlink_udp_create(ml, 0);
+      if (path.ts_ip && !path.ts) { on_tailscale = false; pause_as(LINK_NO_TAILSCALE); return; }
+    } else if (!literal || ts_is_tailnet_address(ntohl(lit.s_addr))) { on_tailscale = false; pause_as(LINK_NO_TAILSCALE); return; }
+    if (!path.ts) on_tailscale = false;
+  }
+  if (!path.ts) {
+    char port[8]; snprintf(port, sizeof port, "%u", settings.link_port);
+    struct addrinfo hints = { .ai_socktype = SOCK_DGRAM }, *res = NULL;
+    if (getaddrinfo(settings.link_host, port, &hints, &res) || !res) { set_state(LINK_NOT_FOUND); vTaskDelay(pdMS_TO_TICKS(2000)); return; }
+    path.sock = socket(res->ai_family, SOCK_DGRAM, 0);
+    int ok = path.sock >= 0 && connect(path.sock, res->ai_addr, res->ai_addrlen) == 0;
+    freeaddrinfo(res);
+    if (!ok) { if (path.sock >= 0) close(path.sock); set_state(LINK_NOT_FOUND); vTaskDelay(pdMS_TO_TICKS(2000)); return; }
+    fcntl(path.sock, F_SETFL, fcntl(path.sock, F_GETFL, 0) | O_NONBLOCK);
+  }
   cwl2_init(&client, (const uint8_t *)settings.link_key, strlen(settings.link_key), esp_random() | 1);
   xQueueReset(edges);
-  ESP_LOGI(TAG, "talking to the receiver at %s port %s", settings.link_host, port);
+  ESP_LOGI(TAG, "talking to the receiver at %s port %u%s", settings.link_host, settings.link_port, path.ts ? " through Tailscale" : "");
   int64_t heard = 0;
   set_state(LINK_NO_ANSWER);
-  while (generation == gen && net_state() == NET_CONNECTED) {
+  while (generation == gen && net_state() == NET_CONNECTED && (!path.ts || ts_handle() == ml)) {
     int64_t now = esp_timer_get_time();
     client.wpm = settings.key_type ? settings.wpm : 0;
     edge_t e;
-    while (xQueueReceive(edges, &e, 0)) { cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(sock, esp_timer_get_time()); }
-    if (cwl2_due(&client, (uint64_t)now)) send_packet(sock, now);
+    while (xQueueReceive(edges, &e, 0)) { cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(&path, esp_timer_get_time()); }
+    if (cwl2_due(&client, (uint64_t)now)) send_packet(&path, now);
     uint8_t buf[96]; int n;
-    while ((n = recv(sock, buf, sizeof buf, 0)) > 0) {
+    while ((n = receive(&path, buf, sizeof buf)) > 0) {
       now = esp_timer_get_time();
       if (!cwl2_on_status(&client, buf, (size_t)n, (uint64_t)now)) continue;
       heard = now;
       link_info_t i = { .state = cwl2_linked(&client) ? LINK_READY : LINK_WAITING,
         .rtt_ms = client.rtt_us < 0 ? -1 : (int)((client.rtt_us + 500) / 1000), .freq_hz = client.status.freq_hz,
         .rig_valid = client.status.flags & CWL2_ST_RIG_VALID, .cw = client.status.flags & CWL2_ST_CW_MODE,
-        .late = client.status.late, .lost = client.status.lost };
+        .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL };
       info = i;
     }
     if (now - heard > 1000000) set_state(LINK_NO_ANSWER);    // the receiver answers ten times a second when it is there
     ulTaskNotifyTake(pdTRUE, 1);
   }
-  close(sock);
+  if (path.ts) microlink_udp_close(path.ts); else close(path.sock);
+  on_tailscale = false;
 }
 
 static void link_task(void *arg) {

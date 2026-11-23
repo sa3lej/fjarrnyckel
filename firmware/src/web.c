@@ -38,8 +38,10 @@ static esp_err_t get_logo(httpd_req_t *req) {
 
 static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
-  static const char *links[] = { "off", "no-wifi", "not-found", "no-answer", "waiting", "ready" };
-  char ssid[80], host[140], body[760];
+  static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
+  static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
+  char ssid[80], host[140], login[2 * 256 + 8], body[1500];
+  json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
   link_info_t l = link_info();
@@ -47,11 +49,13 @@ static esp_err_t get_status(httpd_req_t *req) {
     "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
     "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
-    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u}",
+    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
+    "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
-    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost);
+    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
+    tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false");
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
@@ -113,6 +117,21 @@ static esp_err_t post_link(httpd_req_t *req) {
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+// Switches Tailscale on or off. An auth key is optional: without one the page offers a sign-in link instead.
+// "forget" erases the box's identity on the tailnet, so the next start registers it anew.
+static esp_err_t post_tailscale(httpd_req_t *req) {
+  char body[420], v[8], key[128] = "";
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  if (field(body, "on", v, sizeof v)) settings.ts_on = atoi(v) ? 1 : 0;
+  if (field(body, "key", key, sizeof key) && key[0]) strlcpy(settings.ts_key, key, sizeof settings.ts_key);
+  bool forget = field(body, "forget", v, sizeof v) && atoi(v);
+  if (forget) settings.ts_key[0] = 0;
+  settings_save();
+  ts_apply(forget);
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 static esp_err_t post_settings(httpd_req_t *req) {
@@ -150,8 +169,9 @@ void web_start(void) {
     { .uri = "/api/wifi", .method = HTTP_POST, .handler = post_wifi },
     { .uri = "/api/settings", .method = HTTP_POST, .handler = post_settings },
     { .uri = "/api/link", .method = HTTP_POST, .handler = post_link },
+    { .uri = "/api/tailscale", .method = HTTP_POST, .handler = post_tailscale },
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
   };
-  for (int i = 0; i < 8; i++) httpd_register_uri_handler(server, &routes[i]);
+  for (int i = 0; i < 9; i++) httpd_register_uri_handler(server, &routes[i]);
   httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect);
 }
