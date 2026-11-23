@@ -40,22 +40,25 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[1500];
+  char ssid[80], host[140], login[2 * 256 + 8], body[1700];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
   link_info_t l = link_info();
+  update_info_t u = update_info();
   snprintf(body, sizeof body,
     "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
     "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
-    "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s}",
+    "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,"
+    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\"}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
     links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
-    tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false");
+    tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false",
+    u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error);
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
@@ -132,6 +135,15 @@ static esp_err_t post_tailscale(httpd_req_t *req) {
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+// "check" looks for a new version; "install" downloads and installs the newest one.
+static esp_err_t post_update_online(httpd_req_t *req) {
+  char body[60], v[8];
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  if (field(body, "install", v, sizeof v) && atoi(v)) update_install(); else update_check();
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 static esp_err_t post_settings(httpd_req_t *req) {
@@ -170,8 +182,9 @@ void web_start(void) {
     { .uri = "/api/settings", .method = HTTP_POST, .handler = post_settings },
     { .uri = "/api/link", .method = HTTP_POST, .handler = post_link },
     { .uri = "/api/tailscale", .method = HTTP_POST, .handler = post_tailscale },
+    { .uri = "/api/update/online", .method = HTTP_POST, .handler = post_update_online },
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
   };
-  for (int i = 0; i < 9; i++) httpd_register_uri_handler(server, &routes[i]);
+  for (int i = 0; i < 10; i++) httpd_register_uri_handler(server, &routes[i]);
   httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect);
 }

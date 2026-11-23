@@ -14,5 +14,6 @@ void app_main(void) {
   ts_start();
   web_start();
   update_started_ok();
+  update_start();
   ESP_LOGI("fn", "Fjarrnyckel %s started. Key type: %s", firmware_version(), settings.key_type ? "paddle" : "straight key");
 }

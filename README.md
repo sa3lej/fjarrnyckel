@@ -32,8 +32,8 @@ Work in progress. Honest state of each part:
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
 | Box firmware (`firmware/`) | Wi-Fi setup, setup page, keyer and sidetone run on hardware. The keying link is written and tested on a computer but not yet in the firmware. |
-| Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. Not yet tested on hardware. |
-| Updates over Wi-Fi | Planned. |
+| Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
+| Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Enclosure (`enclosure/`) | Draft; will change. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
@@ -61,6 +61,16 @@ On some DevKitC-1 clones the 5V pin gives no USB power until the board's
 - **Box:** build `firmware/` with PlatformIO (`pio run`) and flash it. The box
   then starts its own Wi-Fi network called `Fjarrnyckel-XXXX`; join it and the
   setup page opens.
+
+## Updates
+
+The box looks for a new version on its own (after it gets Wi-Fi, then twice a day) and shows it under
+Software on its page. Nothing installs until you press the button; settings are kept. A firmware file can
+also be installed from the same place.
+
+A release is made by setting the version in `firmware/CMakeLists.txt` and pushing a tag `v<version>`.
+GitHub Actions builds the firmware and publishes `fjarrnyckel-update.bin` (for the box's page),
+`fjarrnyckel-usb.bin` (a full image for a new board, written at address 0) and `version.txt`.
 
 ## Tests
 

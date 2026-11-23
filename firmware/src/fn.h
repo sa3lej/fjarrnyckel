@@ -80,3 +80,13 @@ bool ts_is_tailnet_address(uint32_t host_order);
 void web_start(void);
 void update_started_ok(void);             // tells the bootloader this firmware works
 const char *firmware_version(void);
+typedef struct {
+  char latest[16];       // newest released version, "" until the box has looked
+  bool checked, checking, available;
+  int progress;          // -1 = nothing is being installed, else percent
+  char error[64];
+} update_info_t;
+void update_start(void);
+void update_check(void);                  // look for a new version now
+void update_install(void);                // download and install the newest version, then restart
+update_info_t update_info(void);
