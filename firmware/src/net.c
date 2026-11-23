@@ -39,6 +39,7 @@ static const char *reason_text(int reason) {
 static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data) {
   if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
     wifi_event_sta_disconnected_t *d = data;
+    if (d->reason == WIFI_REASON_ASSOC_LEAVE) return;   // we left on purpose, to join another network
     if (state == NET_CONNECTED || !down_since) down_since = esp_timer_get_time();
     ip[0] = 0;
     if (settings.ssid[0]) { state = NET_FAILED; snprintf(fail, sizeof fail, "%s", reason_text(d->reason)); }

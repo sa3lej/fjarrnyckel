@@ -33,8 +33,8 @@ label:first-child{margin-top:0}label b{color:var(--cream);font-weight:600;font-v
 input[type=text],input[type=password]{width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;outline:none}
 input:focus-visible,button:focus-visible{outline:2px solid var(--brass2);outline-offset:2px}
 .pw{position:relative}.pw button{position:absolute;right:.3rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--dim);font:inherit;font-size:.85rem;padding:.4rem .6rem;cursor:pointer}
-button.main{width:100%;margin-top:1rem;font-family:inherit;font-size:1rem;font-weight:600;line-height:1;color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border:0;border-radius:10px;padding:.85rem;cursor:pointer;box-shadow:0 2px 0 #9a7222,0 6px 16px #0006}
-button.main:active{transform:translateY(1px);box-shadow:0 1px 0 #9a7222}
+.main{width:100%;box-sizing:border-box;margin-top:1rem;font-family:inherit;font-size:1rem;font-weight:600;line-height:1;color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border:0;border-radius:10px;padding:.85rem;cursor:pointer;box-shadow:0 2px 0 #9a7222,0 6px 16px #0006}
+.main:active{transform:translateY(1px);box-shadow:0 1px 0 #9a7222}
 button.quiet{width:100%;font:inherit;color:var(--cream);background:none;border:1px solid var(--line);border-radius:10px;padding:.7rem;cursor:pointer}
 #nets{margin:.6rem 0 0;display:grid;gap:.4rem}
 #nets button{display:flex;align-items:center;gap:.7rem;width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;cursor:pointer;text-align:left}
@@ -56,6 +56,16 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 #linkState{font-weight:600}#linkDetail{color:var(--dim);font-size:.88rem}#linkDetail:empty{display:none}
 #paddleBox{margin-top:1.1rem}
 footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
+.secret{-webkit-text-security:disc}.secret.shown{-webkit-text-security:none}
+.lead{margin:0 0 .7rem;color:var(--dim);font-size:.93rem}.strong{font-weight:600}.sub{color:var(--dim);font-size:.88rem}.sub:empty{display:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.7rem}
+.center{text-align:center;padding:.6rem 0 .2rem}.center .hint{margin:.5rem auto 0;max-width:24rem}
+.spin{width:42px;height:42px;margin:.2rem auto .9rem;border-radius:50%;border:4px solid var(--line);border-top-color:var(--brass2);animation:turn .9s linear infinite}
+@keyframes turn{to{transform:rotate(360deg)}}
+.tick{width:46px;height:46px;margin:.2rem auto .8rem;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;font-weight:700;color:#06231a;background:var(--ok);box-shadow:0 0 0 6px #7bd38922}
+.tick.bad{background:var(--bad);color:#3a0d06;box-shadow:0 0 0 6px #f08a7b22}.tick.wait{background:var(--brass);color:#2A1B00;box-shadow:0 0 0 6px #d9a44122}
+a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00}
+.lead.big{color:var(--cream);font-weight:600;font-size:1rem}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -70,14 +80,25 @@ footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
 <div class="status" role="status"><span class="lamp" id="lamp"></span><div><div id="state">…</div><div id="detail"></div></div></div>
 
 <h2 data-t="wifi"></h2>
-<div class="card">
- <button class="quiet" id="scan" type="button"></button>
- <div id="nets"></div>
- <label for="ssid" data-t="netName"></label>
- <input id="ssid" type="text" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
- <label for="pass" data-t="password"></label>
- <div class="pw"><input id="pass" type="password" autocomplete="off"><button id="showpw" type="button"></button></div>
- <button class="main" id="join" type="button"></button>
+<div class="card" id="wifiCard">
+ <div id="wNow" hidden><div class="mini"><span class="lamp ok"></span><div><div class="strong" id="wNowT"></div><div class="sub" id="wNowD"></div></div></div>
+  <button class="quiet" id="wChange" type="button" style="margin-top:.8rem"></button></div>
+ <div id="wList" hidden><p class="lead" data-t="wPick"></p><div id="nets"></div>
+  <div class="two"><button class="quiet" id="scan" type="button"></button><button class="quiet" id="wOther" type="button"></button></div></div>
+ <div id="wPass" hidden><p class="lead" id="wPassT"></p>
+  <div id="wNameBox"><label for="ssid" data-t="netName"></label>
+   <input id="ssid" type="text" name="fn-network" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"></div>
+  <label for="pass" data-t="password"></label>
+  <div class="pw"><input id="pass" class="secret" type="text" name="fn-phrase" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"><button id="showpw" type="button"></button></div>
+  <button class="main" id="join" type="button"></button>
+  <button class="quiet" id="wBack" type="button" style="margin-top:.6rem"></button></div>
+ <div id="wBusy" hidden class="center"><div class="spin"></div><div class="strong" id="wBusyT"></div><p class="hint" data-t="wBusyD"></p></div>
+ <div id="wDone" hidden class="center"><div class="tick">✓</div><div class="strong" id="wDoneT"></div><p class="hint" id="wDoneD"></p>
+  <a class="main link" id="wOpen" href="http://fjarrnyckel.local/">fjarrnyckel.local</a></div>
+ <div id="wFail" hidden class="center"><div class="tick bad">!</div><div class="strong" id="wFailT"></div><p class="hint" id="wFailD"></p>
+  <button class="main" id="wRetry" type="button"></button></div>
+ <div id="wLost" hidden class="center"><div class="tick wait">…</div><div class="strong" data-t="wLostT"></div><p class="hint" id="wLostD"></p>
+  <a class="main link" href="http://fjarrnyckel.local/">fjarrnyckel.local</a></div>
 </div>
 
 <h2 data-t="link"></h2>
@@ -88,7 +109,7 @@ footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
  <label for="lport" data-t="lport"></label>
  <input id="lport" type="text" inputmode="numeric" autocomplete="off">
  <label for="lkey" data-t="lkey"></label>
- <div class="pw"><input id="lkey" type="password" autocomplete="off"><button id="showkey" type="button"></button></div>
+ <div class="pw"><input id="lkey" class="secret" type="text" name="fn-linkkey" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"><button id="showkey" type="button"></button></div>
  <p class="hint" data-t="lhint"></p>
  <button class="main" id="lsave" type="button"></button>
 </div>
@@ -128,32 +149,42 @@ footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
 </main>
 <script>
 const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Look for networks",scanning:"Looking…",scanAgain:"Look again",none:"No networks found.",scanFail:"The search failed. Try again.",
- netName:"Network name",password:"Password",show:"Show",hide:"Hide",join:"Connect",open:"open",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
+ netName:"Network name",password:"Password",show:"Show",hide:"Hide",join:"Connect",open:"open",
+ wPick:"Choose the Wi-Fi network the box should use.",wOther:"Other network…",wBack:"Back",wChange:"Change network",wPassFor:"Password for {s}",wOpenNet:"{s} is an open network. No password is needed.",wManual:"Enter the network's name and password.",
+ wNowD:"The box's address: {ip}",wBusyT:"Connecting to {s}…",wBusyD:"This can take half a minute. Your phone may lose the setup network for a moment.",
+ wDoneT:"Connected to {s}",wDoneD:"The setup network switches off in a minute. Put this phone on {s} and open the page again at:",
+ wFailT:"Could not connect to {s}",wRetry:"Try again",wLostT:"Lost contact with the box",wLostD:"That usually means it has joined {s}. Put this phone on {s} and open the address below. If the setup network comes back, the password was wrong.",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
  link:"Radio link",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file.",lsave:"Save",lsaved:"Saved",
  lOff:"Not set up",lOffD:"Enter the receiver's address and the shared key.",lNoWifi:"Waiting for Wi-Fi",lNotFound:"The address was not found",lNotFoundD:"Check the receiver address.",lNoAnswer:"No answer from the receiver",lNoAnswerD:"Check that the receiver is running and that the address, port and key match.",
  lWaitCw:"Connected. The radio is not in CW",lWaitCwD:"Select CW on the radio to switch keying on.",lWait:"Connected. Waiting for the receiver",lReady:"Ready. Your key goes to the radio",rt:"round trip {n} ms",lateLost:"{a} late, {b} lost",
  software:"Software",version:"Version",pick:"Install a firmware file…",upBusy:"Installing… {n} %",upDone:"Installed. The box is restarting…",upFail:"The update failed: ",
  upErr:{"the box could not prepare for the update":"the box could not prepare for it.","the upload was interrupted":"the upload was interrupted.","this is not a Fjarrnyckel firmware file":"this is not a Fjärrnyckel firmware file.","the file is damaged or not a Fjarrnyckel firmware file":"the file is damaged or is not a Fjärrnyckel firmware file.","the new firmware could not be selected":"the new firmware could not be selected."},
  hintS:"The tone follows your key exactly.",mode:"Keyer mode",hintA:"Mode A: when you let go of a squeeze, the element in progress is the last one.",hintB:"Mode B: when you let go of a squeeze, one more element follows.",sidetone:"Sidetone",pitch:"Pitch",volume:"Volume",beep:"Play a test tone",foot:"remote CW keying",lang:"Svenska",
- sNo:"Not set up yet",dNo:"Choose your Wi-Fi network below.",sCon:"Connecting to {s}…",sOk:"Connected to {s}",dOk:"Address on that network: {ip}",dAp:" The setup network switches off in a minute.",sBad:"Not connected to {s}",dBad:"Check the name and password.",
+ sNo:"Not set up yet",dNo:"Choose your Wi-Fi network below.",sCon:"Connecting to {s}…",sOk:"Connected to {s}",sOkW:"Connected to {s}",dOk:"Address on that network: {ip}",dAp:" The setup network switches off in a minute.",sBad:"Not connected to {s}",dBad:"Check the name and password.",
  r:{"network not found":"The network was not found.","wrong password":"The password was not accepted.","could not connect":"The network did not let the box in."},sLost:"No contact with the box",dLost:"If it has just joined your Wi-Fi, put this device on the same network."},
 sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter nätverk",scanning:"Söker…",scanAgain:"Sök igen",none:"Inga nätverk hittades.",scanFail:"Sökningen misslyckades. Försök igen.",
- netName:"Nätverksnamn",password:"Lösenord",show:"Visa",hide:"Dölj",join:"Anslut",open:"öppet",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
+ netName:"Nätverksnamn",password:"Lösenord",show:"Visa",hide:"Dölj",join:"Anslut",open:"öppet",
+ wPick:"Välj det Wi-Fi-nätverk som lådan ska använda.",wOther:"Annat nätverk…",wBack:"Tillbaka",wChange:"Byt nätverk",wPassFor:"Lösenord för {s}",wOpenNet:"{s} är ett öppet nätverk. Inget lösenord behövs.",wManual:"Ange nätverkets namn och lösenord.",
+ wNowD:"Lådans adress: {ip}",wBusyT:"Ansluter till {s}…",wBusyD:"Det kan ta en halv minut. Telefonen kan tappa inställningsnätverket en stund.",
+ wDoneT:"Ansluten till {s}",wDoneD:"Inställningsnätverket stängs av om en minut. Koppla telefonen till {s} och öppna sidan igen på:",
+ wFailT:"Kunde inte ansluta till {s}",wRetry:"Försök igen",wLostT:"Tappade kontakten med lådan",wLostD:"Det betyder oftast att den har anslutit till {s}. Koppla telefonen till {s} och öppna adressen nedan. Om inställningsnätverket kommer tillbaka var lösenordet fel.",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
  link:"Radiolänk",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil.",lsave:"Spara",lsaved:"Sparat",
  lOff:"Inte inställd",lOffD:"Ange mottagarens adress och den delade nyckeln.",lNoWifi:"Väntar på Wi-Fi",lNotFound:"Adressen hittades inte",lNotFoundD:"Kontrollera mottagarens adress.",lNoAnswer:"Inget svar från mottagaren",lNoAnswerD:"Kontrollera att mottagaren är igång och att adress, port och nyckel stämmer.",
  lWaitCw:"Ansluten. Radion står inte i CW",lWaitCwD:"Välj CW på radion för att slå på nycklingen.",lWait:"Ansluten. Väntar på mottagaren",lReady:"Klar. Din nyckel går till radion",rt:"tur och retur {n} ms",lateLost:"{a} sena, {b} tappade",
  software:"Programvara",version:"Version",pick:"Installera en programvarufil…",upBusy:"Installerar… {n} %",upDone:"Installerat. Lådan startar om…",upFail:"Uppdateringen misslyckades: ",
  upErr:{"the box could not prepare for the update":"lådan kunde inte förbereda den.","the upload was interrupted":"uppladdningen avbröts.","this is not a Fjarrnyckel firmware file":"det här är ingen programvarufil för Fjärrnyckel.","the file is damaged or not a Fjarrnyckel firmware file":"filen är skadad eller ingen programvarufil för Fjärrnyckel.","the new firmware could not be selected":"den nya programvaran kunde inte väljas."},
  hintS:"Tonen följer din nyckel exakt.",mode:"Nycklingssätt",hintA:"Läge A: när du släpper ett kläm blir det pågående tecknet det sista.",hintB:"Läge B: när du släpper ett kläm följer ett tecken till.",sidetone:"Medhörning",pitch:"Tonhöjd",volume:"Volym",beep:"Spela en testton",foot:"fjärrnyckling av CW",lang:"English",
- sNo:"Inte inställd än",dNo:"Välj ditt Wi-Fi-nätverk nedan.",sCon:"Ansluter till {s}…",sOk:"Ansluten till {s}",dOk:"Adress på det nätverket: {ip}",dAp:" Inställningsnätverket stängs av om en minut.",sBad:"Inte ansluten till {s}",dBad:"Kontrollera namn och lösenord.",
+ sNo:"Inte inställd än",dNo:"Välj ditt Wi-Fi-nätverk nedan.",sCon:"Ansluter till {s}…",sOk:"Ansluten till {s}",sOkW:"Ansluten till {s}",dOk:"Adress på det nätverket: {ip}",dAp:" Inställningsnätverket stängs av om en minut.",sBad:"Inte ansluten till {s}",dBad:"Kontrollera namn och lösenord.",
  r:{"network not found":"Nätverket hittades inte.","wrong password":"Lösenordet godtogs inte.","could not connect":"Nätverket släppte inte in lådan."},sLost:"Ingen kontakt med lådan",dLost:"Om den just anslutit till ditt Wi-Fi: koppla den här enheten till samma nätverk."}};
 const $=id=>document.getElementById(id);
+let W={view:"",ssid:"",open:false,manual:false,since:0,misses:0};
 let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0,iambic:1};
 const t=k=>T[L][k];
 const post=(u,d)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(d)});
 function texts(){document.documentElement.lang=L;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
  $("lang").textContent=t("lang");$("scan").textContent=t(scanState);$("join").textContent=t("join");$("beep").textContent=t("beep");
- $("showpw").textContent=t($("pass").type=="password"?"show":"hide");$("showkey").textContent=t($("lkey").type=="password"?"show":"hide");
+ $("showpw").textContent=t($("pass").classList.contains("shown")?"hide":"show");$("showkey").textContent=t($("lkey").classList.contains("shown")?"hide":"show");
+ for(const k of["wOther","wBack","wChange","wRetry"])$(k).textContent=t(k);paintWifi();
  $("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
 function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";return}
  $("ver").textContent=S.version||"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
@@ -173,12 +204,12 @@ function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").tex
  for(const k of["keyType","swap","iambic"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
  $("paddleBox").hidden=cur.keyType!=1;$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{S=await(await fetch("/api/status",{cache:"no-store"})).json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;if(!$("ssid").value)$("ssid").value=S.ssid;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}}catch(e){S=null}paint()}
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 for(const k of["wpm","tone","volume"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
 for(const k of["keyType","swap","iambic"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
-$("showpw").onclick=()=>{$("pass").type=$("pass").type=="password"?"text":"password";texts()};
-$("showkey").onclick=()=>{$("lkey").type=$("lkey").type=="password"?"text":"password";texts()};
+$("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
+$("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};
 $("lsave").onclick=async()=>{await post("/api/link",{host:$("lhost").value.trim(),port:$("lport").value.trim(),key:$("lkey").value.trim()}).catch(()=>{});$("lkey").value="";$("lsave").textContent=t("lsaved");setTimeout(texts,1500);status()};
 $("pick").onclick=()=>$("fw").click();
 $("fw").onchange=()=>{const f=$("fw").files[0];if(!f)return;const x=new XMLHttpRequest(),m=$("upMsg");x.open("POST","/api/update");
@@ -186,18 +217,41 @@ $("fw").onchange=()=>{const f=$("fw").files[0];if(!f)return;const x=new XMLHttpR
  x.onload=()=>{if(x.status==200){m.textContent=t("upDone");setTimeout(()=>location.reload(),12000)}else{let r="";try{r=JSON.parse(x.responseText).error}catch(e){}m.textContent=t("upFail")+(T[L].upErr[r]||r)}};
  x.onerror=()=>{m.textContent=t("upFail")+T[L].upErr["the upload was interrupted"]};x.send(f);$("fw").value=""};
 $("lang").onclick=()=>{L=L=="sv"?"en":"sv";localStorage.fnLang=L;texts()};
-$("scan").onclick=async()=>{scanState="scanning";texts();$("nets").textContent="";
+// The Wi-Fi section shows one step at a time: the current network, the list, the password, progress, the result.
+const fill=(k)=>t(k).replaceAll("{s}",W.ssid).replace("{ip}",S?S.ip:"");
+function view(v){W.view=v;paintWifi()}
+function paintWifi(){for(const k of["Now","List","Pass","Busy","Done","Fail","Lost"])$("w"+k).hidden=W.view!=k.toLowerCase();
+ if(W.view=="now"&&S){W.ssid=S.ssid;$("wNowT").textContent=fill("sOkW");$("wNowD").textContent=fill("wNowD")}
+ if(W.view=="pass"){$("wNameBox").hidden=!W.manual;$("wPassT").textContent=W.manual?t("wManual"):fill(W.open?"wOpenNet":"wPassFor");$("pass").closest(".pw").hidden=W.open&&!W.manual;$("pass").closest(".pw").previousElementSibling.hidden=!W.manual;$("wPassT").classList.toggle("big",!W.manual)}
+ if(W.view=="busy")$("wBusyT").textContent=fill("wBusyT");
+ if(W.view=="done"){$("wDoneT").textContent=fill("wDoneT");$("wDoneD").textContent=fill("wDoneD")}
+ if(W.view=="fail"&&S){$("wFailT").textContent=fill("wFailT");$("wFailD").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
+ if(W.view=="lost")$("wLostD").textContent=fill("wLostD")}
+// Called after every status reading: moves the section on when the box reports the outcome.
+function wifiStep(){const age=Date.now()-W.since;
+ if(W.view=="busy"){if(S&&S.ssid==W.ssid&&S.wifi=="connected")view("done");else if(S&&S.ssid==W.ssid&&S.wifi=="failed"&&age>4000)view("fail");else if(!S&&W.misses>=12)view("lost")}
+ else if(W.view=="lost"&&S){if(S.wifi=="connected")view("done");else if(S.wifi=="failed")view("fail")}
+ else if(W.view==""&&S){if(S.wifi=="connected")view("now");else{view("list");scan()}}
+ else if(W.view=="now"&&S&&S.wifi!="connected"&&age>4000){view("list");scan()}
+ else paintWifi()}
+async function scan(){scanState="scanning";texts();$("nets").textContent="";
  try{const list=await(await fetch("/api/scan")).json();list.sort((a,b)=>b.rssi-a.rssi);
   for(const n of list){const b=document.createElement("button");b.type="button";
    const bars=document.createElement("span");bars.className="bars";const lvl=n.rssi>-55?4:n.rssi>-67?3:n.rssi>-78?2:1;for(let i=1;i<=4;i++){const x=document.createElement("i");if(i<=lvl)x.className="on";bars.append(x)}
    const name=document.createElement("span");name.className="n";name.textContent=n.ssid;b.append(bars,name);
    if(n.open){const o=document.createElement("span");o.className="o";o.textContent=t("open");b.append(o)}
-   b.onclick=()=>{$("nets").querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");$("ssid").value=n.ssid;$("pass").value="";$("pass").focus()};$("nets").append(b)}
+   b.onclick=()=>{W.ssid=n.ssid;W.open=n.open;W.manual=false;$("ssid").value=n.ssid;$("pass").value="";view("pass");if(!n.open)$("pass").focus()};$("nets").append(b)}
   if(!list.length)$("nets").textContent=t("none")}catch(e){$("nets").textContent=t("scanFail")}
- scanState="scanAgain";texts()};
-$("join").onclick=async()=>{if(!$("ssid").value)return $("ssid").focus();if(S){S.wifi="connecting";S.ssid=$("ssid").value;paint()}
- await post("/api/wifi",{ssid:$("ssid").value,pass:$("pass").value}).catch(()=>{})};
-texts();status();setInterval(status,2000);
+ scanState="scanAgain";texts()}
+$("scan").onclick=scan;
+$("wOther").onclick=()=>{W.ssid="";W.open=false;W.manual=true;$("ssid").value="";$("pass").value="";view("pass");$("ssid").focus()};
+$("wBack").onclick=()=>view("list");
+$("wChange").onclick=()=>{view("list");scan()};
+$("wRetry").onclick=()=>{view("pass");if(!W.open)$("pass").focus()};
+$("join").onclick=async()=>{if(W.manual)W.ssid=$("ssid").value.trim();if(!W.ssid)return $("ssid").focus();
+ document.activeElement&&document.activeElement.blur();W.since=Date.now();W.misses=0;view("busy");$("wifiCard").scrollIntoView({block:"center",behavior:"smooth"});
+ await post("/api/wifi",{ssid:W.ssid,pass:W.open&&!W.manual?"":$("pass").value}).catch(()=>{})};
+texts();status();setInterval(status,1500);
 </script>
 </body>
 </html>
