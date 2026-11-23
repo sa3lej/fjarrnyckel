@@ -12,6 +12,7 @@
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "lwip/sockets.h"
+#include "mdns.h"
 #include "fn.h"
 
 static const char *TAG = "net";
@@ -161,6 +162,8 @@ void net_start(void) {
   ap_on = setup; down_since = esp_timer_get_time();
   if (setup) ESP_LOGI(TAG, "no Wi-Fi details yet. Setup network \"%s\" is up: open http://192.168.4.1", ap_name);
   else try_connect();
+  // The box answers to http://fjarrnyckel.local on the home network, so nobody has to look up its address.
+  if (mdns_init() == ESP_OK) { mdns_hostname_set("fjarrnyckel"); mdns_instance_name_set("Fjarrnyckel"); mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0); }
   xTaskCreate(dns_task, "dns", 3072, NULL, 5, NULL);
   xTaskCreate(manager_task, "wifi", 4096, NULL, 5, NULL);
 }

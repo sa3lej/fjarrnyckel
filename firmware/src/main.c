@@ -10,6 +10,8 @@ void app_main(void) {
   keyer_start();
   audio_beep(500, 120); vTaskDelay(pdMS_TO_TICKS(220)); audio_beep(700, 120);   // power-on signal: low, high
   net_start();
+  link_start();
   web_start();
-  ESP_LOGI("fn", "Fjarrnyckel started. Key type: %s", settings.key_type ? "paddle" : "straight key");
+  update_started_ok();
+  ESP_LOGI("fn", "Fjarrnyckel %s started. Key type: %s", firmware_version(), settings.key_type ? "paddle" : "straight key");
 }

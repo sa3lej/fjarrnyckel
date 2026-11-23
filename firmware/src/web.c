@@ -7,6 +7,7 @@
 #include "fn.h"
 
 // The page and the logo are linked into the firmware from src/page.html and src/logo.png.
+esp_err_t update_upload(httpd_req_t *req);
 extern const char page_start[] asm("_binary_page_html_start");
 extern const char page_end[] asm("_binary_page_html_end");
 extern const char logo_start[] asm("_binary_logo_png_start");
@@ -37,13 +38,20 @@ static esp_err_t get_logo(httpd_req_t *req) {
 
 static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
-  char ssid[80], body[420];
+  static const char *links[] = { "off", "no-wifi", "not-found", "no-answer", "waiting", "ready" };
+  char ssid[80], host[140], body[760];
   json_text(ssid, sizeof ssid, settings.ssid);
+  json_text(host, sizeof host, settings.link_host);
+  link_info_t l = link_info();
   snprintf(body, sizeof body,
-    "{\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
-    "\"keyType\":%d,\"swap\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"keyDown\":%s}",
-    names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
-    settings.key_type, settings.swap, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false");
+    "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
+    "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"keyDown\":%s,"
+    "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
+    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u}",
+    firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
+    settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
+    host, settings.link_port, settings.link_key[0] ? "true" : "false",
+    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost);
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
@@ -91,6 +99,20 @@ static esp_err_t post_wifi(httpd_req_t *req) {
   return ESP_OK;
 }
 
+// The shared key is only ever written, never sent back: an empty key field keeps the stored one.
+static esp_err_t post_link(httpd_req_t *req) {
+  char body[420], host[64] = "", port[8] = "", key[96] = "";
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  field(body, "host", host, sizeof host); field(body, "port", port, sizeof port); field(body, "key", key, sizeof key);
+  strlcpy(settings.link_host, host, sizeof settings.link_host);
+  int p = atoi(port); settings.link_port = p > 0 && p < 65536 ? p : 7373;
+  if (key[0]) strlcpy(settings.link_key, key, sizeof settings.link_key);
+  settings_save();
+  link_restart();
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 static esp_err_t post_settings(httpd_req_t *req) {
@@ -98,6 +120,7 @@ static esp_err_t post_settings(httpd_req_t *req) {
   if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
   if (field(body, "keyType", v, sizeof v)) settings.key_type = atoi(v) ? 1 : 0;
   if (field(body, "swap", v, sizeof v)) settings.swap = atoi(v) ? 1 : 0;
+  if (field(body, "iambic", v, sizeof v)) settings.iambic_b = atoi(v) ? 1 : 0;
   if (field(body, "wpm", v, sizeof v)) settings.wpm = clamp(atoi(v), 5, 60);
   if (field(body, "tone", v, sizeof v)) settings.tone_hz = clamp(atoi(v), 300, 1200);
   if (field(body, "volume", v, sizeof v)) settings.volume = clamp(atoi(v), 0, 100);
@@ -116,7 +139,7 @@ static esp_err_t redirect(httpd_req_t *req, httpd_err_code_t err) {
 
 void web_start(void) {
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-  cfg.max_uri_handlers = 8; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
+  cfg.max_uri_handlers = 12; cfg.recv_wait_timeout = 15; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
   httpd_handle_t server;
   if (httpd_start(&server, &cfg) != ESP_OK) { ESP_LOGE("web", "the setup page could not start"); return; }
   const httpd_uri_t routes[] = {
@@ -126,7 +149,9 @@ void web_start(void) {
     { .uri = "/api/scan", .method = HTTP_GET, .handler = get_scan },
     { .uri = "/api/wifi", .method = HTTP_POST, .handler = post_wifi },
     { .uri = "/api/settings", .method = HTTP_POST, .handler = post_settings },
+    { .uri = "/api/link", .method = HTTP_POST, .handler = post_link },
+    { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
   };
-  for (int i = 0; i < 6; i++) httpd_register_uri_handler(server, &routes[i]);
+  for (int i = 0; i < 8; i++) httpd_register_uri_handler(server, &routes[i]);
   httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect);
 }
