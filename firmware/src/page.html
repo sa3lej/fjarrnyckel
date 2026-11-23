@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07253E">
+<link rel="icon" href="/logo.png">
+<link rel="apple-touch-icon" href="/logo.png">
+<title>Fjärrnyckel</title>
+<style>
+:root{--night:#07253E;--deep:#051B2E;--panel:#0D3050;--line:#1D4468;--brass:#D9A441;--brass2:#F0C56A;--cream:#F4ECD8;--dim:#A9B8C6;--ok:#7BD389;--bad:#F08A7B}
+*{box-sizing:border-box}
+html{background:var(--deep)}
+body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--cream);
+ background:radial-gradient(120% 60% at 50% 0,#0E3A60 0,var(--night) 45%,var(--deep) 100%) fixed;min-height:100vh;-webkit-text-size-adjust:100%}
+main{max-width:34rem;margin:0 auto;padding:calc(1.2rem + env(safe-area-inset-top)) 1rem 3rem}
+header{display:flex;align-items:center;gap:.9rem;margin:.4rem 0 1.3rem}
+header img{width:76px;height:76px;border-radius:18px;box-shadow:0 8px 24px #0008,0 0 0 1px #ffffff14}
+h1{font:600 1.75rem/1.1 Georgia,"Times New Roman",serif;letter-spacing:.01em;margin:0;color:var(--cream)}
+header p{margin:.15rem 0 0;color:var(--dim);font-size:.92rem}
+#lang{margin-left:auto;align-self:flex-start;background:none;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:.25rem .7rem;font:inherit;font-size:.8rem;cursor:pointer}
+.status{display:flex;gap:.8rem;align-items:center;background:linear-gradient(180deg,#123A5E,#0D3050);border:1px solid var(--line);border-radius:14px;padding:.9rem 1rem;box-shadow:0 6px 20px #0005}
+.lamp{flex:none;width:12px;height:12px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 4px #ffffff10}
+.lamp.ok{background:var(--ok);box-shadow:0 0 0 4px #7bd38926,0 0 14px #7bd38988}
+.lamp.busy{background:var(--brass);animation:pulse 1.1s infinite}
+.lamp.bad{background:var(--bad);box-shadow:0 0 0 4px #f08a7b26}
+@keyframes pulse{50%{opacity:.35}}
+#state{font-weight:600}#detail{color:var(--dim);font-size:.9rem}
+h2{font-size:.78rem;font-weight:600;line-height:1;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:1.9rem .2rem .6rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem;box-shadow:0 6px 20px #0004}
+label{display:flex;justify-content:space-between;align-items:baseline;margin:1rem 0 .35rem;font-size:.93rem;color:var(--dim)}
+label:first-child{margin-top:0}label b{color:var(--cream);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=text],input[type=password]{width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;outline:none}
+input:focus-visible,button:focus-visible{outline:2px solid var(--brass2);outline-offset:2px}
+.pw{position:relative}.pw button{position:absolute;right:.3rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--dim);font:inherit;font-size:.85rem;padding:.4rem .6rem;cursor:pointer}
+button.main{width:100%;margin-top:1rem;font-family:inherit;font-size:1rem;font-weight:600;line-height:1;color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border:0;border-radius:10px;padding:.85rem;cursor:pointer;box-shadow:0 2px 0 #9a7222,0 6px 16px #0006}
+button.main:active{transform:translateY(1px);box-shadow:0 1px 0 #9a7222}
+button.quiet{width:100%;font:inherit;color:var(--cream);background:none;border:1px solid var(--line);border-radius:10px;padding:.7rem;cursor:pointer}
+#nets{margin:.6rem 0 0;display:grid;gap:.4rem}
+#nets button{display:flex;align-items:center;gap:.7rem;width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;cursor:pointer;text-align:left}
+#nets button.sel{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
+#nets .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#nets .o{color:var(--dim);font-size:.8rem}
+.bars{display:flex;align-items:flex-end;gap:2px;height:14px}.bars i{width:3px;background:var(--line);border-radius:1px}.bars i.on{background:var(--brass2)}
+.bars i:nth-child(1){height:5px}.bars i:nth-child(2){height:8px}.bars i:nth-child(3){height:11px}.bars i:nth-child(4){height:14px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{font:inherit;color:var(--dim);background:none;border:0;border-radius:8px;padding:.6rem;cursor:pointer}
+.seg button.on{color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));font-weight:600}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:none;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--brass) var(--fill,50%),var(--deep) var(--fill,50%));border:1px solid var(--line)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--deep);border:1px solid var(--line)}
+input[type=range]::-moz-range-progress{height:6px;border-radius:3px;background:var(--brass)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;margin-top:-10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3cf,var(--brass) 60%,#9a7222);border:1px solid #6d4f12;box-shadow:0 2px 6px #0008}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3cf,var(--brass) 60%,#9a7222);border:1px solid #6d4f12}
+.hint{color:var(--dim);font-size:.85rem;margin:.9rem 0 0}
+#paddleBox{margin-top:1.1rem}
+footer{margin:2.2rem 0 0;text-align:center;color:#6f8498;font-size:.8rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <img src="/logo.png" alt="" width="76" height="76">
+ <div><h1>Fjärrnyckel</h1><p data-t="tagline"></p></div>
+ <button id="lang" type="button"></button>
+</header>
+
+<div class="status" role="status"><span class="lamp" id="lamp"></span><div><div id="state">…</div><div id="detail"></div></div></div>
+
+<h2 data-t="wifi"></h2>
+<div class="card">
+ <button class="quiet" id="scan" type="button"></button>
+ <div id="nets"></div>
+ <label for="ssid" data-t="netName"></label>
+ <input id="ssid" type="text" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
+ <label for="pass" data-t="password"></label>
+ <div class="pw"><input id="pass" type="password" autocomplete="off"><button id="showpw" type="button"></button></div>
+ <button class="main" id="join" type="button"></button>
+</div>
+
+<h2 data-t="key"></h2>
+<div class="card">
+ <div class="seg" id="keyType"><button type="button" data-v="0" data-t="straight"></button><button type="button" data-v="1" data-t="paddle"></button></div>
+ <div id="paddleBox">
+  <label for="wpm"><span data-t="speed"></span><b><span id="wpmV"></span> WPM</b></label>
+  <input id="wpm" type="range" min="5" max="60">
+  <label data-t="sides"></label>
+  <div class="seg" id="swap"><button type="button" data-v="0" data-t="tipDit"></button><button type="button" data-v="1" data-t="ringDit"></button></div>
+ </div>
+ <p class="hint" id="keyHint"></p>
+</div>
+
+<h2 data-t="sidetone"></h2>
+<div class="card">
+ <label for="tone"><span data-t="pitch"></span><b><span id="toneV"></span> Hz</b></label>
+ <input id="tone" type="range" min="300" max="1200" step="10">
+ <label for="volume"><span data-t="volume"></span><b><span id="volumeV"></span></b></label>
+ <input id="volume" type="range" min="0" max="100">
+ <button class="quiet" id="beep" type="button" style="margin-top:1rem"></button>
+</div>
+
+<footer>Fjärrnyckel · <span data-t="foot"></span></footer>
+</main>
+<script>
+const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Look for networks",scanning:"Looking…",scanAgain:"Look again",none:"No networks found.",scanFail:"The search failed. Try again.",
+ netName:"Network name",password:"Password",show:"Show",hide:"Hide",join:"Connect",open:"open",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
+ hintS:"The tone follows your key exactly.",hintP:"The box makes dits and dahs at the speed you set. Squeeze both paddles to alternate.",sidetone:"Sidetone",pitch:"Pitch",volume:"Volume",beep:"Play a test tone",foot:"remote CW keying",lang:"Svenska",
+ sNo:"Not set up yet",dNo:"Choose your Wi-Fi network below.",sCon:"Connecting to {s}…",sOk:"Connected to {s}",dOk:"Address on that network: {ip}",dAp:" The setup network switches off in a minute.",sBad:"Not connected to {s}",dBad:"Check the name and password.",
+ r:{"network not found":"The network was not found.","wrong password":"The password was not accepted.","could not connect":"The network did not let the box in."},sLost:"No contact with the box",dLost:"If it has just joined your Wi-Fi, put this device on the same network."},
+sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter nätverk",scanning:"Söker…",scanAgain:"Sök igen",none:"Inga nätverk hittades.",scanFail:"Sökningen misslyckades. Försök igen.",
+ netName:"Nätverksnamn",password:"Lösenord",show:"Visa",hide:"Dölj",join:"Anslut",open:"öppet",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
+ hintS:"Tonen följer din nyckel exakt.",hintP:"Lådan formar korta och långa i den takt du ställt in. Kläm båda paddlarna för att växla.",sidetone:"Medhörning",pitch:"Tonhöjd",volume:"Volym",beep:"Spela en testton",foot:"fjärrnyckling av CW",lang:"English",
+ sNo:"Inte inställd än",dNo:"Välj ditt Wi-Fi-nätverk nedan.",sCon:"Ansluter till {s}…",sOk:"Ansluten till {s}",dOk:"Adress på det nätverket: {ip}",dAp:" Inställningsnätverket stängs av om en minut.",sBad:"Inte ansluten till {s}",dBad:"Kontrollera namn och lösenord.",
+ r:{"network not found":"Nätverket hittades inte.","wrong password":"Lösenordet godtogs inte.","could not connect":"Nätverket släppte inte in lådan."},sLost:"Ingen kontakt med lådan",dLost:"Om den just anslutit till ditt Wi-Fi: koppla den här enheten till samma nätverk."}};
+const $=id=>document.getElementById(id);
+let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0};
+const t=k=>T[L][k];
+const post=(u,d)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(d)});
+function texts(){document.documentElement.lang=L;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
+ $("lang").textContent=t("lang");$("scan").textContent=t(scanState);$("join").textContent=t("join");$("beep").textContent=t("beep");
+ $("showpw").textContent=t($("pass").type=="password"?"show":"hide");show();paint()}
+function paint(){const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
+ const f=(k)=>t(k).replace("{s}",S.ssid).replace("{ip}",S.ip);
+ if(S.wifi=="connected"){lamp.className="lamp ok";$("state").textContent=f("sOk");$("detail").textContent=f("dOk")+(S.setupNetwork?t("dAp"):"")}
+ else if(S.wifi=="connecting"){lamp.className="lamp busy";$("state").textContent=f("sCon");$("detail").textContent=""}
+ else if(S.wifi=="failed"){lamp.className="lamp bad";$("state").textContent=f("sBad");$("detail").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
+ else{lamp.className="lamp";$("state").textContent=t("sNo");$("detail").textContent=t("dNo")}}
+function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}
+ for(const k of["keyType","swap"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
+ $("paddleBox").hidden=cur.keyType!=1;$("keyHint").textContent=t(cur.keyType==1?"hintP":"hintS")}
+async function status(){try{S=await(await fetch("/api/status",{cache:"no-store"})).json();
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;if(!$("ssid").value)$("ssid").value=S.ssid;show()}}catch(e){S=null}paint()}
+for(const k of["wpm","tone","volume"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
+for(const k of["keyType","swap"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
+$("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
+$("showpw").onclick=()=>{$("pass").type=$("pass").type=="password"?"text":"password";texts()};
+$("lang").onclick=()=>{L=L=="sv"?"en":"sv";localStorage.fnLang=L;texts()};
+$("scan").onclick=async()=>{scanState="scanning";texts();$("nets").textContent="";
+ try{const list=await(await fetch("/api/scan")).json();list.sort((a,b)=>b.rssi-a.rssi);
+  for(const n of list){const b=document.createElement("button");b.type="button";
+   const bars=document.createElement("span");bars.className="bars";const lvl=n.rssi>-55?4:n.rssi>-67?3:n.rssi>-78?2:1;for(let i=1;i<=4;i++){const x=document.createElement("i");if(i<=lvl)x.className="on";bars.append(x)}
+   const name=document.createElement("span");name.className="n";name.textContent=n.ssid;b.append(bars,name);
+   if(n.open){const o=document.createElement("span");o.className="o";o.textContent=t("open");b.append(o)}
+   b.onclick=()=>{$("nets").querySelectorAll("button").forEach(x=>x.classList.remove("sel"));b.classList.add("sel");$("ssid").value=n.ssid;$("pass").value="";$("pass").focus()};$("nets").append(b)}
+  if(!list.length)$("nets").textContent=t("none")}catch(e){$("nets").textContent=t("scanFail")}
+ scanState="scanAgain";texts()};
+$("join").onclick=async()=>{if(!$("ssid").value)return $("ssid").focus();if(S){S.wifi="connecting";S.ssid=$("ssid").value;paint()}
+ await post("/api/wifi",{ssid:$("ssid").value,pass:$("pass").value}).catch(()=>{})};
+texts();status();setInterval(status,2000);
+</script>
+</body>
+</html>
