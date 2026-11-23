@@ -34,6 +34,7 @@ Work in progress. Honest state of each part:
 | Box firmware (`firmware/`) | Wi-Fi setup, setup page, keyer and sidetone run on hardware. The keying link is written and tested on a computer but not yet in the firmware. |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
+| Password on the setup page | From 0.5.0: optional, off until you set one. |
 | Enclosure (`enclosure/`) | Draft; will change. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 

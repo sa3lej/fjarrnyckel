@@ -4,6 +4,8 @@
 #include <string.h>
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_random.h"
+#include "psa/crypto.h"
 #include "fn.h"
 
 // The page and the logo are linked into the firmware from src/page.html and src/logo.png.
@@ -24,6 +26,44 @@ static void json_text(char *out, int size, const char *in) {      // a C string 
   out[at] = 0;
 }
 
+// ---- the page's optional password ----
+// Off unless the owner sets one. With it on, the page itself still loads but every /api call needs the session
+// cookie that /api/login hands out for the right password. The cookie's value is made anew at every start and
+// whenever the password changes, so old sessions end there.
+static char session[33];
+static void new_session(void) { for (int i = 0; i < 16; i++) snprintf(session + 2 * i, 3, "%02x", (unsigned)(esp_random() & 0xFF)); }
+
+static void hash_password(const char *pass, const uint8_t salt[8], uint8_t out[32]) {
+  uint8_t in[8 + 64]; size_t len = strnlen(pass, 64), n = 0;
+  memcpy(in, salt, 8); memcpy(in + 8, pass, len);
+  memset(out, 0, 32);
+  psa_crypto_init();
+  psa_hash_compute(PSA_ALG_SHA_256, in, 8 + len, out, 32, &n);
+}
+
+static bool same(const uint8_t *a, const uint8_t *b, size_t n) { uint8_t d = 0; while (n--) d |= *a++ ^ *b++; return d == 0; }   // takes the same time whatever differs
+
+static bool unlocked(httpd_req_t *req) {
+  if (!settings.page_lock) return true;
+  char value[40]; size_t len = sizeof value;
+  if (httpd_req_get_cookie_val(req, "fn", value, &len) != ESP_OK || strlen(value) != 32) return false;
+  return same((const uint8_t *)value, (const uint8_t *)session, 32);
+}
+
+static void give_cookie(httpd_req_t *req) {
+  static char header[90];
+  snprintf(header, sizeof header, "fn=%s; Path=/; HttpOnly; SameSite=Strict", session);
+  httpd_resp_set_hdr(req, "Set-Cookie", header);
+}
+
+// Every protected route goes through here; the real handler travels in user_ctx.
+static esp_err_t guarded(httpd_req_t *req) {
+  if (unlocked(req)) return ((esp_err_t (*)(httpd_req_t *))req->user_ctx)(req);
+  httpd_resp_set_status(req, "401 Unauthorized");
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"error\":\"locked\"}");
+}
+
 static esp_err_t get_page(httpd_req_t *req) {
   httpd_resp_set_type(req, "text/html; charset=utf-8");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
@@ -40,7 +80,7 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[1700];
+  char ssid[80], host[140], login[2 * 256 + 8], body[1720];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
@@ -52,13 +92,13 @@ static esp_err_t get_status(httpd_req_t *req) {
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,"
-    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\"}",
+    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
     links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false",
-    u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error);
+    u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false");
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
@@ -144,6 +184,37 @@ static esp_err_t post_update_online(httpd_req_t *req) {
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+static esp_err_t post_login(httpd_req_t *req) {
+  char body[260], pass[65] = ""; uint8_t hash[32];
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  field(body, "pass", pass, sizeof pass);
+  hash_password(pass, settings.page_salt, hash);
+  httpd_resp_set_type(req, "application/json");
+  if (settings.page_lock && !same(hash, settings.page_hash, 32)) {
+    httpd_resp_set_status(req, "403 Forbidden");
+    return httpd_resp_sendstr(req, "{\"error\":\"wrong password\"}");
+  }
+  give_cookie(req);
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
+// Sets, changes or (with an empty password) removes the page's password.
+static esp_err_t post_password(httpd_req_t *req) {
+  char body[260], pass[65] = "";
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  field(body, "pass", pass, sizeof pass);
+  new_session();                             // everyone else who was let in has to give the new password
+  if (pass[0]) {
+    esp_fill_random(settings.page_salt, sizeof settings.page_salt);
+    hash_password(pass, settings.page_salt, settings.page_hash);
+    settings.page_lock = 1;
+    give_cookie(req);
+  } else settings.page_lock = 0;
+  settings_save();
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 static int clamp(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 static esp_err_t post_settings(httpd_req_t *req) {
@@ -170,7 +241,7 @@ static esp_err_t redirect(httpd_req_t *req, httpd_err_code_t err) {
 
 void web_start(void) {
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-  cfg.max_uri_handlers = 12; cfg.recv_wait_timeout = 15; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
+  cfg.max_uri_handlers = 16; cfg.recv_wait_timeout = 15; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
   httpd_handle_t server;
   if (httpd_start(&server, &cfg) != ESP_OK) { ESP_LOGE("web", "the setup page could not start"); return; }
   const httpd_uri_t routes[] = {
@@ -185,6 +256,14 @@ void web_start(void) {
     { .uri = "/api/update/online", .method = HTTP_POST, .handler = post_update_online },
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
   };
-  for (int i = 0; i < 10; i++) httpd_register_uri_handler(server, &routes[i]);
+  new_session();
+  for (int i = 0; i < 10; i++) {
+    httpd_uri_t r = routes[i];
+    if (i >= 2) { r.user_ctx = (void *)r.handler; r.handler = guarded; }     // the page and the logo are always shown
+    httpd_register_uri_handler(server, &r);
+  }
+  const httpd_uri_t login = { .uri = "/api/login", .method = HTTP_POST, .handler = post_login };
+  const httpd_uri_t password = { .uri = "/api/password", .method = HTTP_POST, .handler = guarded, .user_ctx = (void *)post_password };
+  httpd_register_uri_handler(server, &login); httpd_register_uri_handler(server, &password);
   httpd_register_err_handler(server, HTTPD_404_NOT_FOUND, redirect);
 }

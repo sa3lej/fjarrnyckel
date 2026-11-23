@@ -27,6 +27,9 @@ typedef struct {
   uint8_t iambic_b;     // paddle: 1 = iambic mode B, 0 = mode A
   uint8_t ts_on;        // 1 = join the owner's Tailscale network
   char ts_key[128];     // optional Tailscale auth key; empty = sign in through the setup page
+  uint8_t page_lock;    // 1 = the setup page asks for a password
+  uint8_t page_salt[8]; // the password itself is not kept, only SHA-256(salt + password)
+  uint8_t page_hash[32];
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
