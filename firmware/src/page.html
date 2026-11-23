@@ -157,6 +157,16 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <button class="quiet" id="beep" type="button" style="margin-top:1rem"></button>
 </div>
 
+<h2 data-t="signals"></h2>
+<div class="card">
+ <label data-t="ledL"></label>
+ <div class="seg" id="led"><button type="button" data-v="1" data-t="on"></button><button type="button" data-v="0" data-t="off"></button></div>
+ <p class="hint" data-t="ledHint"></p>
+ <label data-t="tonesL" style="margin-top:1rem"></label>
+ <div class="seg" id="tones"><button type="button" data-v="1" data-t="on"></button><button type="button" data-v="0" data-t="off"></button></div>
+ <p class="hint" data-t="tonesHint"></p>
+</div>
+
 <h2 data-t="protect"></h2>
 <div class="card">
  <div class="mini"><span class="lamp" id="pwLamp"></span><div><div id="pwState"></div><div id="pwDetail"></div></div></div>
@@ -170,6 +180,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 <h2 data-t="software"></h2>
 <div class="card">
  <label><span data-t="version"></span><b id="ver">…</b></label>
+ <p class="hint" id="svc" style="color:var(--brass)"></p>
  <div class="mini" style="margin-top:.6rem"><span class="lamp" id="upLamp"></span><div><div id="upState"></div><div id="upDetail"></div></div></div>
  <div class="bar" id="upBar" hidden><i></i></div>
  <button class="main" id="upInstall" type="button" hidden></button>
@@ -195,10 +206,12 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  tsOffS:"Off",tsNoWifi:"Waiting for Wi-Fi",tsCon:"Connecting to Tailscale…",tsNeed:"Sign in to add the box",tsNeedD:"Only needed once. The box remembers it.",tsLogin:"Sign in to Tailscale",tsLoginHint:"Opens Tailscale's sign-in page. This device needs internet access.",
  tsOk:"Connected to Tailscale",tsOkD:"The box's Tailscale address: {ip}",tsFail:"Tailscale did not accept the box",tsFailD:"The key may have expired, or the box was removed from your tailnet. Start over to sign in again.",tsErr:"Tailscale could not start",tsErrD:"The box tries again by itself.",tsCrash:"Switched off: the box restarted while Tailscale was starting.",
  tsOff:"Switch off",tsForget:"Start over",tsForgetAsk:"Erase the box's Tailscale sign-in? It then has to be added again.",lNoTs:"Waiting for Tailscale",lNoTsD:"The receiver's address is on Tailscale.",via:"through Tailscale",
- protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it, the box has to be reinstalled over USB, which clears all settings.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
+ signals:"Signals",on:"On",off:"Off",ledL:"Status light",ledHint:"Green: ready. Amber: the radio is not ready. Red: no Wi-Fi. Blue, blinking: the setup network is up.",tonesL:"Status tones",tonesHint:"The letter R in Morse when keying comes on, two low tones when it goes off.",
+ signedY:"signed",signedN:"not signed",svcOn:"Service mode until the box restarts: firmware that is not signed can be installed.",
+ protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it: hold the key down while plugging the box in, and let go after the first beep (five seconds). That removes the password.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
  lockT:"This box is locked",lockD:"Enter the page's password.",unlock:"Unlock",lockWrong:"That password was not right.",
  software:"Software",version:"Version",pick:"Install from a file…",upCheck:"Look for updates",upNew:"Version {v} is available",upNewD:"Installing takes about a minute. The box restarts and keeps its settings.",upLatest:"The box has the newest version",upChecking:"Looking for a new version…",upUnknown:"Not looked yet",upInstall:"Install {v}",upOnline:"Downloading and installing… {n} %",upNoGo:"Could not update",upBusy:"Installing… {n} %",upDone:"Installed. The box is restarting…",upFail:"The update failed: ",
- upErr:{"the box could not prepare for the update":"the box could not prepare for it.","the upload was interrupted":"the upload was interrupted.","this is not a Fjarrnyckel firmware file":"this is not a Fjärrnyckel firmware file.","the file is damaged or not a Fjarrnyckel firmware file":"the file is damaged or is not a Fjärrnyckel firmware file.","the new firmware could not be selected":"the new firmware could not be selected.","could not reach the update server":"The box could not reach the update server. It needs internet access.","could not download the update":"The download did not start. Try again."},
+ upErr:{"the box could not prepare for the update":"the box could not prepare for it.","the upload was interrupted":"the upload was interrupted.","this is not a Fjarrnyckel firmware file":"this is not a Fjärrnyckel firmware file.","the file is damaged or not a Fjarrnyckel firmware file":"the file is damaged or is not a Fjärrnyckel firmware file.","the new firmware could not be selected":"the new firmware could not be selected.","could not reach the update server":"The box could not reach the update server. It needs internet access.","could not download the update":"The download did not start. Try again.","this firmware is not signed by the Fjarrnyckel project":"this firmware is not signed by the Fjärrnyckel project. To install it anyway, hold the key down for five seconds while plugging the box in."},
  hintS:"The tone follows your key exactly.",mode:"Keyer mode",hintA:"Mode A: when you let go of a squeeze, the element in progress is the last one.",hintB:"Mode B: when you let go of a squeeze, one more element follows.",sidetone:"Sidetone",pitch:"Pitch",volume:"Volume",beep:"Play a test tone",foot:"remote CW keying",lang:"Svenska",
  sNo:"Not set up yet",dNo:"Choose your Wi-Fi network below.",sCon:"Connecting to {s}…",sOk:"Connected to {s}",sOkW:"Connected to {s}",dOk:"Address on that network: {ip}",dAp:" The setup network switches off in a minute.",sBad:"Not connected to {s}",dBad:"Check the name and password.",
  r:{"network not found":"The network was not found.","wrong password":"The password was not accepted.","could not connect":"The network did not let the box in."},sLost:"No contact with the box",dLost:"If it has just joined your Wi-Fi, put this device on the same network."},
@@ -215,16 +228,18 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  tsOffS:"Avstängt",tsNoWifi:"Väntar på Wi-Fi",tsCon:"Ansluter till Tailscale…",tsNeed:"Logga in för att lägga till lådan",tsNeedD:"Behövs bara en gång. Lådan kommer ihåg det.",tsLogin:"Logga in på Tailscale",tsLoginHint:"Öppnar Tailscales inloggningssida. Den här enheten behöver internet.",
  tsOk:"Ansluten till Tailscale",tsOkD:"Lådans Tailscale-adress: {ip}",tsFail:"Tailscale godtog inte lådan",tsFailD:"Nyckeln kan ha gått ut, eller så har lådan tagits bort ur ditt tailnet. Börja om för att logga in igen.",tsErr:"Tailscale kunde inte starta",tsErrD:"Lådan försöker igen av sig själv.",tsCrash:"Avstängt: lådan startade om när Tailscale skulle starta.",
  tsOff:"Stäng av",tsForget:"Börja om",tsForgetAsk:"Radera lådans Tailscale-inloggning? Den måste sedan läggas till igen.",lNoTs:"Väntar på Tailscale",lNoTsD:"Mottagarens adress ligger på Tailscale.",via:"via Tailscale",
- protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det måste lådan installeras om via USB, vilket nollställer alla inställningar.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
+ signals:"Signaler",on:"På",off:"Av",ledL:"Statuslampa",ledHint:"Grön: klar. Gul: radion är inte redo. Röd: inget Wi-Fi. Blå, blinkande: inställningsnätverket är igång.",tonesL:"Statustoner",tonesHint:"Bokstaven R i morse när nycklingen slås på, två låga toner när den slås av.",
+ signedY:"signerad",signedN:"inte signerad",svcOn:"Serviceläge tills lådan startar om: programvara som inte är signerad kan installeras.",
+ protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det: håll nyckeln nedtryckt när lådan kopplas in och släpp efter första pipet (fem sekunder). Då tas lösenordet bort.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
  lockT:"Lådan är låst",lockD:"Ange sidans lösenord.",unlock:"Lås upp",lockWrong:"Lösenordet stämde inte.",
  software:"Programvara",version:"Version",pick:"Installera från fil…",upCheck:"Sök uppdatering",upNew:"Version {v} finns",upNewD:"Installationen tar ungefär en minut. Lådan startar om och behåller sina inställningar.",upLatest:"Lådan har den senaste versionen",upChecking:"Söker efter ny version…",upUnknown:"Har inte sökt än",upInstall:"Installera {v}",upOnline:"Laddar ner och installerar… {n} %",upNoGo:"Kunde inte uppdatera",upBusy:"Installerar… {n} %",upDone:"Installerat. Lådan startar om…",upFail:"Uppdateringen misslyckades: ",
- upErr:{"the box could not prepare for the update":"lådan kunde inte förbereda den.","the upload was interrupted":"uppladdningen avbröts.","this is not a Fjarrnyckel firmware file":"det här är ingen programvarufil för Fjärrnyckel.","the file is damaged or not a Fjarrnyckel firmware file":"filen är skadad eller ingen programvarufil för Fjärrnyckel.","the new firmware could not be selected":"den nya programvaran kunde inte väljas.","could not reach the update server":"Lådan nådde inte uppdateringsservern. Den behöver internet.","could not download the update":"Nedladdningen kom inte igång. Försök igen."},
+ upErr:{"the box could not prepare for the update":"lådan kunde inte förbereda den.","the upload was interrupted":"uppladdningen avbröts.","this is not a Fjarrnyckel firmware file":"det här är ingen programvarufil för Fjärrnyckel.","the file is damaged or not a Fjarrnyckel firmware file":"filen är skadad eller ingen programvarufil för Fjärrnyckel.","the new firmware could not be selected":"den nya programvaran kunde inte väljas.","could not reach the update server":"Lådan nådde inte uppdateringsservern. Den behöver internet.","could not download the update":"Nedladdningen kom inte igång. Försök igen.","this firmware is not signed by the Fjarrnyckel project":"programvaran är inte signerad av Fjärrnyckel-projektet. För att installera den ändå: håll nyckeln nedtryckt i fem sekunder när lådan kopplas in."},
  hintS:"Tonen följer din nyckel exakt.",mode:"Nycklingssätt",hintA:"Läge A: när du släpper ett kläm blir det pågående tecknet det sista.",hintB:"Läge B: när du släpper ett kläm följer ett tecken till.",sidetone:"Medhörning",pitch:"Tonhöjd",volume:"Volym",beep:"Spela en testton",foot:"fjärrnyckling av CW",lang:"English",
  sNo:"Inte inställd än",dNo:"Välj ditt Wi-Fi-nätverk nedan.",sCon:"Ansluter till {s}…",sOk:"Ansluten till {s}",sOkW:"Ansluten till {s}",dOk:"Adress på det nätverket: {ip}",dAp:" Inställningsnätverket stängs av om en minut.",sBad:"Inte ansluten till {s}",dBad:"Kontrollera namn och lösenord.",
  r:{"network not found":"Nätverket hittades inte.","wrong password":"Lösenordet godtogs inte.","could not connect":"Nätverket släppte inte in lådan."},sLost:"Ingen kontakt med lådan",dLost:"Om den just anslutit till ditt Wi-Fi: koppla den här enheten till samma nätverk."}};
 const $=id=>document.getElementById(id);
 let W={view:"",ssid:"",open:false,manual:false,since:0,misses:0};
-let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0,iambic:1};
+let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0,iambic:1,led:1,tones:1};
 const t=k=>T[L][k];
 const post=(u,d)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(d)});
 function texts(){document.documentElement.lang=L;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
@@ -233,7 +248,7 @@ function texts(){document.documentElement.lang=L;document.querySelectorAll("[dat
  for(const k of["wOther","wBack","wChange","wRetry"])$(k).textContent=t(k);paintWifi();
  for(const k of["tsOn","tsKeyToggle","tsLogin","tsOff","tsForget"])$(k).textContent=t(k);$("showts").textContent=t($("tsKey").classList.contains("shown")?"hide":"show");$("upCheck").textContent=t("upCheck");$("unlock").textContent=t("unlock");$("pwOff").textContent=t("pwOff");$("showlock").textContent=t($("lockPass").classList.contains("shown")?"hide":"show");$("showpwn").textContent=t($("pwNew").classList.contains("shown")?"hide":"show");$("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
 function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";return}
- $("ver").textContent=S.version||"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
+ $("ver").textContent=(S.version||"")+" · "+t(S.signed?"signedY":"signedN");$("svc").textContent=S.service?t("svcOn"):"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
  const mhz=S.freq?(S.freq/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:3,maximumFractionDigits:3})+" MHz":"";
  const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",S.linkTailscale?t("via"):"",(S.late||S.lost)?t("lateLost").replace("{a}",S.late).replace("{b}",S.lost):""].filter(x=>x).join(" · ");
  const set=(c,a,b)=>{lamp.className="lamp "+c;st.textContent=t(a);d.textContent=b||""};
@@ -266,12 +281,12 @@ function paint(){paintPw();if(locked)return;paintLink();paintTs();paintUp();cons
  else if(S.wifi=="failed"){lamp.className="lamp bad";$("state").textContent=f("sBad");$("detail").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
  else{lamp.className="lamp";$("state").textContent=t("sNo");$("detail").textContent=t("dNo")}}
 function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}
- for(const k of["keyType","swap","iambic"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
+ for(const k of["keyType","swap","iambic","led","tones"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
  $("paddleBox").hidden=cur.keyType!=1;$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 for(const k of["wpm","tone","volume"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
-for(const k of["keyType","swap","iambic"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
+for(const k of["keyType","swap","iambic","led","tones"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
 $("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};

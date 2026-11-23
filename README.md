@@ -35,6 +35,7 @@ Work in progress. Honest state of each part:
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
+| Status light and tones, signed firmware, reset with the key | From 0.6.0. |
 | Enclosure (`enclosure/`) | Draft; will change. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
@@ -68,6 +69,17 @@ On some DevKitC-1 clones the 5V pin gives no USB power until the board's
 The box looks for a new version on its own (after it gets Wi-Fi, then twice a day) and shows it under
 Software on its page. Nothing installs until you press the button; settings are kept. A firmware file can
 also be installed from the same place.
+
+Released firmware is signed, and the box only installs signed firmware. The private key is a secret of
+this repository (`FN_SIGNING_KEY`); the public half is in `firmware/src/signing_key.h`. If you build your
+own firmware, put your own public key there, or use service mode.
+
+**Service mode and reset, with only the key.** Hold the key down while plugging the box in:
+
+- let go after the first beep (5 seconds): the page's password is removed, and until the next restart the
+  box also accepts firmware that is not signed;
+- let go after the three beeps (15 seconds): all settings are erased and the box is as new;
+- a key that never comes up (stuck, or switched closed) changes nothing.
 
 A release is made by setting the version in `firmware/CMakeLists.txt` and pushing a tag `v<version>`.
 GitHub Actions builds the firmware and publishes `fjarrnyckel-update.bin` (for the box's page),

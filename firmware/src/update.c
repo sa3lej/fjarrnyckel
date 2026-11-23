@@ -47,6 +47,7 @@ esp_err_t update_upload(httpd_req_t *req) {
   }
   if (!error && esp_ota_end(ota) != ESP_OK) error = "the file is damaged or not a Fjarrnyckel firmware file";
   else if (error && target) esp_ota_abort(ota);
+  if (!error && !service_mode() && !firmware_signed(target)) error = "this firmware is not signed by the Fjarrnyckel project";
   if (!error && esp_ota_set_boot_partition(target) != ESP_OK) error = "the new firmware could not be selected";
   httpd_resp_set_type(req, "application/json");
   if (error) {
@@ -142,6 +143,10 @@ static void install(void) {
   }
   if (err != ESP_OK || !esp_https_ota_is_complete_data_received(ota)) { esp_https_ota_abort(ota); set_error("the upload was interrupted"); return; }
   if (esp_https_ota_finish(ota) != ESP_OK) { set_error("the file is damaged or not a Fjarrnyckel firmware file"); return; }
+  if (!service_mode() && !firmware_signed(esp_ota_get_next_update_partition(NULL))) {
+    esp_ota_set_boot_partition(esp_ota_get_running_partition());      // stay on the firmware that is running
+    set_error("this firmware is not signed by the Fjarrnyckel project"); return;
+  }
   i = info; i.progress = 100; info = i;
   ESP_LOGI(TAG, "version %s is installed, restarting", desc.version);
   vTaskDelay(pdMS_TO_TICKS(2500));           // long enough for the page to see that it is done
@@ -151,6 +156,7 @@ static void install(void) {
 // Looks for a new version shortly after the box gets Wi-Fi, then twice a day, and whenever the page asks.
 static void update_task(void *arg) {
   int64_t last = 0;
+  { bool ok = firmware_signed(esp_ota_get_running_partition()); update_info_t i = info; i.is_signed = ok; info = i; ESP_LOGI(TAG, "the running firmware is %s", ok ? "signed" : "not signed"); }
   for (;;) {
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(5000));
     if (net_state() != NET_CONNECTED) { if (want_check || want_install) { want_check = want_install = false; set_error("could not reach the update server"); } continue; }

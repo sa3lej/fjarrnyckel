@@ -30,6 +30,8 @@ typedef struct {
   uint8_t page_lock;    // 1 = the setup page asks for a password
   uint8_t page_salt[8]; // the password itself is not kept, only SHA-256(salt + password)
   uint8_t page_hash[32];
+  uint8_t led_off;      // 1 = the status light stays dark
+  uint8_t tones_off;    // 1 = no tones when keying comes on or goes off
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -81,11 +83,20 @@ void *ts_handle(void);                    // the MicroLink handle while the link
 bool ts_is_tailnet_address(uint32_t host_order);
 
 void web_start(void);
+// ---- status light and tones, service mode, signatures ----
+void led_start(void);
+void led_show(int r, int g, int b);
+void status_start(void);
+void service_check(void);                 // at start: the key held down asks for service mode or a full erase
+bool service_mode(void);
+bool firmware_signed(const void *partition);                 // the firmware copy carries the project's signature
+
 void update_started_ok(void);             // tells the bootloader this firmware works
 const char *firmware_version(void);
 typedef struct {
   char latest[16];       // newest released version, "" until the box has looked
   bool checked, checking, available;
+  bool is_signed;        // the running firmware carries the project's signature
   int progress;          // -1 = nothing is being installed, else percent
   char error[64];
 } update_info_t;

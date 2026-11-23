@@ -24,12 +24,16 @@ jobs:
           pip install platformio
           cd firmware && pio run
       - name: Collect the files
+        env:
+          FN_SIGNING_KEY: ${{ secrets.FN_SIGNING_KEY }}
         run: |
           b=firmware/.pio/build/fjarrnyckel
           mkdir release
-          cp $b/firmware.bin release/fjarrnyckel-update.bin
+          pip install cryptography
+          python tools/sign_firmware.py sign $b/firmware.bin release/fjarrnyckel-update.bin
+          python tools/sign_firmware.py check release/fjarrnyckel-update.bin --pub firmware/src/signing_key.h
           ~/.platformio/packages/tool-esptool/esptool --chip esp32s3 merge-bin -o release/fjarrnyckel-usb.bin --flash-mode dio --flash-freq 80m --flash-size 16MB \
-            0x0 $b/bootloader.bin 0x8000 $b/partitions.bin 0xf000 $b/ota_data_initial.bin 0x20000 $b/firmware.bin
+            0x0 $b/bootloader.bin 0x8000 $b/partitions.bin 0xf000 $b/ota_data_initial.bin 0x20000 release/fjarrnyckel-update.bin
           echo "$VERSION" > release/version.txt
           grep -a -c -x "$VERSION" <(strings release/fjarrnyckel-update.bin)
       - name: Publish

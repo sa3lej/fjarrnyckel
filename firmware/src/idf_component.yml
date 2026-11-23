@@ -1,3 +1,4 @@
 dependencies:
   espressif/mdns: "^1.8.0"
+  espressif/led_strip: "^3.0.0"
   camm2325/microlink: "~2.3.0"

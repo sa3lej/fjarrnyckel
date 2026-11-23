@@ -80,7 +80,7 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[1720];
+  char ssid[80], host[140], login[2 * 256 + 8], body[1800];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
@@ -92,13 +92,14 @@ static esp_err_t get_status(httpd_req_t *req) {
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,"
-    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s}",
+    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
     links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false",
-    u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false");
+    u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false",
+    u.is_signed ? "true" : "false", service_mode() ? "true" : "false", !settings.led_off, !settings.tones_off);
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
@@ -225,6 +226,8 @@ static esp_err_t post_settings(httpd_req_t *req) {
   if (field(body, "iambic", v, sizeof v)) settings.iambic_b = atoi(v) ? 1 : 0;
   if (field(body, "wpm", v, sizeof v)) settings.wpm = clamp(atoi(v), 5, 60);
   if (field(body, "tone", v, sizeof v)) settings.tone_hz = clamp(atoi(v), 300, 1200);
+  if (field(body, "led", v, sizeof v)) settings.led_off = !atoi(v);
+  if (field(body, "tones", v, sizeof v)) settings.tones_off = !atoi(v);
   if (field(body, "volume", v, sizeof v)) settings.volume = clamp(atoi(v), 0, 100);
   if (field(body, "save", v, sizeof v)) settings_save();     // sliders send live values; only the last one is stored
   if (field(body, "beep", v, sizeof v)) audio_beep(settings.tone_hz, 150);

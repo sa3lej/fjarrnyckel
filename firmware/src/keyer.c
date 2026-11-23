@@ -27,10 +27,12 @@ static void keyer_task(void *arg) {
   enum { IDLE, MARK, GAP } phase = IDLE;
   bool sending_dah = false, dit_wanted = false, dah_wanted = false, dit_was = false, dah_was = false;
   int64_t until = 0;
+  bool armed = false;      // a key that is already down when the box starts counts for nothing until it has been up
   TickType_t tick = xTaskGetTickCount();
   for (;;) {
     vTaskDelayUntil(&tick, 1);
     bool t = settle(&tip, gpio_get_level(PIN_TIP) == 0), r = settle(&ring, gpio_get_level(PIN_RING) == 0);
+    if (!armed) { if (t || r) continue; armed = true; }
     if (settings.key_type == 0) { set_key(t); phase = IDLE; continue; }
 
     bool dit = settings.swap ? r : t, dah = settings.swap ? t : r;
