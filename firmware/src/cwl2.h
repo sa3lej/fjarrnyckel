@@ -1,5 +1,5 @@
 // CWL2 client: the operator's end of the remote CW keying link. The packet format and the rules are
-// described in ../cwproto.py and ../cwsend.py; this is the same client in C, free of any platform code
+// described in ../../receiver/cwproto.py and ../../receiver/cwsend.py; this is the same client in C, free of any platform code
 // so it also builds on a computer for the tests in ../tests/.
 #pragma once
 #include <stdbool.h>

@@ -1,0 +1,18 @@
+# Fjärrnyckel receiver as a user service. It must run as the same user as wfview.
+# Install: copy to ~/.config/systemd/user/, edit the two paths marked below, then
+#   systemctl --user daemon-reload && systemctl --user enable --now fjarrnyckel-receiver
+[Unit]
+Description=Fjärrnyckel receiver (remote CW keying)
+After=network-online.target
+
+[Service]
+# Path to this repository's receiver, your key file, and your radio's serial port.
+ExecStart=/usr/bin/python3 %h/fjarrnyckel/receiver/cwrecv.py \
+    --key %h/.config/fjarrnyckel/cw.key \
+    --serial /dev/serial/by-id/CHANGE-ME \
+    --wfview
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

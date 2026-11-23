@@ -5,7 +5,7 @@ import random
 import sys
 import unittest
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "receiver"))
 
 import cwproto as proto
 from cwrecv import Receiver
