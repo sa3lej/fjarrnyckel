@@ -93,6 +93,9 @@ other mode the receiver refuses to key.
 
 ## Radios
 
+**So far only the IC-7300 has been tested.** The other radios below are expected to
+work from Icom's documentation, but nobody has tried them yet.
+
 The receiver asks wfview which radio it is connected to, and its CI-V address.
 It keys by switching DTR on the radio's USB serial port, the one wfview has open.
 

@@ -31,7 +31,7 @@ Work in progress. Honest state of each part:
 
 | Part | State |
 |---|---|
-| Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. Knows the USB keying menu of the IC-7300MK2, IC-705, IC-9700, IC-7610 and IC-905 from Icom's CI-V guides, not yet tried on them; see [Radios](docs/receiver-raspberry-pi.md#radios). |
+| Receiver (`receiver/`) | Working. **Only tested with the IC-7300** (Raspberry Pi 4, wfview). Knows the USB keying menu of the IC-7300MK2, IC-705, IC-9700, IC-7610 and IC-905 from Icom's CI-V guides, not yet tried on them; see [Radios](docs/receiver-raspberry-pi.md#radios). |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
 | Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. The USB sound card for radio audio streams from a Mac without gaps since 0.11.3 (2026-11-24). |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
