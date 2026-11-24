@@ -20,8 +20,11 @@ part = "assembly";   // assembly | open | base | lid | lens | print_lid | cut_po
 $fn = 64;
 
 // ---- Measure these ----------------------------------------------------------
-esp_l = 57.0;        // board length, without the USB sockets sticking out
-esp_w = 28.0;        // board width (25.4 on the original Espressif board)
+// The board in use is the wide clone (pin rows 25.4 mm apart, measured). Its maker's drawing, YD-ESP32-S3
+// "ESP32-S3-Metric.pdf" (github.com/vcc-gnd/YD-ESP32-S3), gives 57.15 x 27.94 mm, rows 25.40 apart, the first
+// and last pins 1.91 mm from the ends; USB socket centres and the RGB light are scaled from the same drawing.
+esp_l = 57.15;       // board length, without the USB sockets sticking out
+esp_w = 27.94;       // board width
 esp_t = 1.6;         // board thickness
 row_pitch = 25.4;    // distance between the two pin rows: 25.4 on the wide clones (measured on SA3LEJ's "678AB V0.0.1" board), 22.86 on the original
 hdr_h = 2.5;         // height of the black plastic strip of the pin headers
@@ -30,11 +33,12 @@ pin_drop = 8.6;      // underside of the board to the pin tips (black strip + pi
 usb_proud = 1.2;     // how far the USB sockets stick out past the board edge
 usb_span = 30.0;     // width of the opening over both USB-C sockets together, with room for two plugs' grips
 usb_plug_h = 10.0;   // height of that opening
+usb_pitch = 11.9;    // centre to centre of the two USB-C sockets
 usb_up = 1.7;        // centre of the USB sockets above the top of the board
 can_up = 3.3;        // top of the metal can of the radio module above the top of the board
 can_from_end = 14;   // centre of that can from the antenna end of the board
-led_from_usb = 20;   // status light: distance from the USB edge of the board
-led_off = 0;         // status light: sideways offset from the board's centre line
+led_from_usb = 18.4; // status light: distance from the USB edge of the board
+led_off = 0.5;       // status light: sideways offset from the board's centre line
 amp_w = 19.5;        // amplifier board, side with the pin row
 amp_d = 18.0;        // amplifier board, other side
 amp_pins = 7;        // pins in its header
@@ -221,7 +225,7 @@ module parts() {
   translate([esp_cx, 0, pcb_z]) {
     color("#16233a") translate([-esp_w / 2, esp_y0, 0]) cube([esp_w, esp_l, esp_t]);
     color("#c9c9c9") translate([-9, esp_y0 + 5, esp_t]) cube([18, 20, can_up]);
-    color("#c9c9c9") for (s = [-1, 1]) translate([s * 6.6 - 4.5, esp_y1 - 7, esp_t]) cube([9, 7 + usb_proud, 3.2]);
+    color("#c9c9c9") for (s = [-1, 1]) translate([s * usb_pitch / 2 - 4.5, esp_y1 - 7, esp_t]) cube([9, 7 + usb_proud, 3.2]);
     color("#222") for (s = [-1, 1]) translate([s * row_pitch / 2 - 1.27, hdr_y0, -hdr_h]) cube([2.54, hdr_l, hdr_h]);
     color("#d4af37") for (s = [-1, 1], i = [0 : 21]) translate([s * row_pitch / 2 - 0.32, hdr_y0 + 0.95 + i * 2.54, -pin_drop]) cube([0.64, 0.64, pin_drop]);
     color("#f6f6f6") translate([led_off - 1.7, esp_y1 - led_from_usb - 1.7, esp_t]) cube([3.4, 3.4, 1]);
