@@ -1,21 +1,24 @@
 // Sidetone: a sine tone that follows key_down, through one MAX98357A for the speaker and a second one for
-// headphones. Both get the same tone at the same moment; each has its own volume.
+// headphones. Both get the same tone at the same moment; each has its own volume. The headphones also get the
+// sound the computer plays to the box over USB (the radio, through wfview), with its own volume.
 // Blocks are 2 ms and the driver holds four of them, so the tone trails the key by a few milliseconds.
+// 48 kHz, the rate the computer's sound arrives at, so nothing has to be converted.
 #include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/i2s_std.h"
 #include "fn.h"
 
-#define RATE  16000
-#define BLOCK 32
+#define RATE  48000
+#define BLOCK 96
 static i2s_chan_handle_t tx, tx_hp;
 static volatile int beep_hz, beep_blocks;
 
 static void audio_task(void *arg) {
-  float phase = 0, gain = 0, lv = 0, hp_lv = 0;   // lv, hp_lv: the two volumes as they are right now
+  float phase = 0, gain = 0, lv = 0, hp_lv = 0, rv = 0;   // lv, hp_lv: the two volumes as they are right now
   const float ramp = 1.0f / (0.005f * RATE);   // 5 ms fade in and out, so the tone does not click
   int16_t frames[BLOCK * 2];
+  int16_t radio[BLOCK];
   int32_t hp[BLOCK * 2];   // 32-bit samples: at headphone levels 16 bits would leave only a few hundred steps, which sounds gritty
   for (;;) {
     bool beeping = beep_blocks > 0;
@@ -24,14 +27,18 @@ static void audio_task(void *arg) {
     float hz = beeping ? beep_hz : settings.tone_hz;
     float level = (settings.volume / 100.0f) * (settings.volume / 100.0f) * 0.6f;   // squared: even steps to the ear
     float hp_level = (settings.hp_volume / 100.0f) * (settings.hp_volume / 100.0f) * 0.6f;
+    float radio_level = (settings.radio_volume / 100.0f) * (settings.radio_volume / 100.0f);
+    usb_audio_take(radio, BLOCK);
     for (int i = 0; i < BLOCK; i++) {
       gain += on ? ramp : -ramp; if (gain > 1) gain = 1; if (gain < 0) gain = 0;
       phase += 2 * (float)M_PI * hz / RATE; if (phase > 2 * (float)M_PI) phase -= 2 * (float)M_PI;
       // A volume glides to its new setting over a few hundredths of a second. A jump in the middle of a tone is a click.
-      lv += (level - lv) * 0.003f; hp_lv += (hp_level - hp_lv) * 0.003f;
+      lv += (level - lv) * 0.001f; hp_lv += (hp_level - hp_lv) * 0.001f; rv += (radio_level - rv) * 0.001f;
       float v = sinf(phase) * gain * 32767;
       frames[2 * i] = frames[2 * i + 1] = (int16_t)(v * lv);   // same in both channels: the amplifier plays their average
-      hp[2 * i] = hp[2 * i + 1] = (int32_t)(v * hp_lv * 65536.0f);
+      float h = v * hp_lv + radio[i] * rv;
+      if (h > 32767) h = 32767; else if (h < -32767) h = -32767;
+      hp[2 * i] = hp[2 * i + 1] = (int32_t)(h * 65536.0f);
     }
     size_t written;
     i2s_channel_write(tx, frames, sizeof frames, &written, portMAX_DELAY);

@@ -36,7 +36,7 @@ FIELDS = [("ssid", "33s", 0), ("pass", "65s", 1), ("key_type", "B", 0), ("swap",
           ("link_port", "H", 0), ("link_key", "96s", 1), ("iambic_b", "B", 0), ("ts_on", "B", 0), ("ts_key", "128s", 1),
           ("page_lock", "B", 0), ("page_salt", "8s", 1), ("page_hash", "32s", 1), ("led_off", "B", 0), ("tones_off", "B", 0),
           ("key_target", "B", 0), ("usb_raw", "B", 0), ("hp_volume", "B", 0), ("ts_region", "H", 0),
-          ("ts_region_auto", "H", 0)]
+          ("ts_region_auto", "H", 0), ("radio_volume", "B", 0), (None, "x", 0)]
 
 def show(plain, secrets):
     version = plain[:16].split(b"\0")[0].decode()

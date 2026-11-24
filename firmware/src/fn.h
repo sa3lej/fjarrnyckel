@@ -40,6 +40,7 @@ typedef struct {
   uint8_t hp_volume;    // sidetone volume in the headphones, 0-100
   uint16_t ts_region;   // Tailscale relay region the box calls home; 0 = follow the receiver
   uint16_t ts_region_auto;  // the receiver's region as last learned, used when ts_region is 0
+  uint8_t radio_volume; // sound from the computer (the radio, through wfview) in the headphones, 0-100
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -104,6 +105,8 @@ void usb_start(void);
 void usb_key(bool dit, bool dah, bool keyed);   // every millisecond: what the computer should see now
 bool usb_connected(void);
 bool usb_midi_mode(void);                 // a site has switched the box from keyboard to MIDI
+bool usb_audio_playing(void);             // the computer is playing sound to the box
+void usb_audio_take(int16_t *out, int n); // n samples of that sound at 48 kHz; silence when there is none
 bool usb_raw(void);                       // the paddles go out as they are
 int usb_iambic(void);                     // keyer mode and speed to use in training: a MIDI site may ask for its own
 int usb_wpm(void);

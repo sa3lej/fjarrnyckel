@@ -31,7 +31,7 @@ Work in progress. Honest state of each part:
 |---|---|
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
-| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. |
+| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. The USB sound card for radio audio (0.11.0) is not yet tried on hardware. |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
@@ -240,6 +240,17 @@ adapters do, and nothing is sent to the radio:
 
 With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
 **The two paddles** the site does the keying.
+
+## Radio sound in the headphones
+
+On its USB port the box is also a sound card, called **Fjarrnyckel**. Choose it as the audio output in wfview
+(or for the whole computer) and the radio is heard in the box's headphones together with the sidetone, each
+with its own volume (Key → Radio sound from the computer). The sidetone never leaves the box, so it stays
+instant; the keying path to the radio is not touched.
+
+The sound card runs at 48 kHz, 16-bit mono. It reports to the computer how fast the box actually plays, so the
+two clocks do not drift apart. The computer's own volume and mute work as usual. The radio sound plays in the
+headphones only, not in the speaker.
 
 ## Tailscale relay region
 
