@@ -18,6 +18,7 @@
 #include "class/audio/audio_device.h"
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 #include "fn.h"
 
 static const char *TAG = "usb";
@@ -99,6 +100,20 @@ static void update_gain(void) {
 }
 bool usb_audio_playing(void) { return streaming && primed; }
 
+// What the sound card is doing, for the status page: how often the computer switched the stream, the last
+// alternate setting, bytes received, the buffer fill, and how often it ran dry.
+static volatile uint32_t itf_sets, rx_bytes, rx_packets, underruns;
+static volatile uint8_t last_alt = 0xFF;
+bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n, uint8_t func_id, uint8_t ep_out, uint8_t alt) {
+  rx_bytes += n; rx_packets++;
+  return true;
+}
+int usb_audio_report(char *out, int size) {
+  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%u,\"underruns\":%lu,\"gain\":%.3f}",
+                  streaming ? "true" : "false", primed ? "true" : "false", (unsigned long)itf_sets, last_alt == 0xFF ? -1 : last_alt,
+                  (unsigned long)rx_bytes, (unsigned long)rx_packets, ready ? tud_audio_available() : 0, (unsigned long)underruns, host_gain);
+}
+
 // Fills n samples of radio audio; silence when nothing is coming. Called by the audio task every block.
 void usb_audio_take(int16_t *out, int n) {
   int want = n * 2;
@@ -106,7 +121,7 @@ void usb_audio_take(int16_t *out, int n) {
   uint16_t have = tud_audio_available();
   if (!primed) { if (have >= CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2) primed = true; else { memset(out, 0, want); return; } }
   int got = tud_audio_read(out, have < want ? have & ~1 : want);
-  if (got < want) { memset((uint8_t *)out + got, 0, want - got); if (got == 0) primed = false; }   // ran dry: build up again
+  if (got < want) { memset((uint8_t *)out + got, 0, want - got); underruns++; if (got == 0) primed = false; }   // ran dry: build up again
   float g = host_gain;
   if (g < 0.999f) for (int i = 0; i < n; i++) out[i] = (int16_t)(out[i] * g);
 }
@@ -118,6 +133,7 @@ void tud_audio_feedback_params_cb(uint8_t func_id, uint8_t alt_itf, audio_feedba
 }
 
 bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const *req) {
+  itf_sets++; last_alt = TU_U16_LOW(req->wValue);
   if (TU_U16_LOW(req->wIndex) == ITF_AUDIO_STREAMING) { streaming = TU_U16_LOW(req->wValue) != 0; primed = false; }
   return true;
 }
