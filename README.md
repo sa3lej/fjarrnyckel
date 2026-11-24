@@ -36,7 +36,7 @@ Work in progress. Honest state of each part:
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
 | Status light and tones, signed firmware, reset with the key | From 0.6.0. |
-| Enclosure (`enclosure/`) | Redrawn for the bare board on its headers, one key socket and an optional headphone socket. Not printed yet; the part sizes in the file must be measured first. `fjarrnyckel-box.jpg` is a generated picture of the design, not a photo of a print. |
+| Enclosure (`enclosure/`) | Sized for the parts in use: the wide ESP32-S3 clone on its headers (YD-ESP32-S3 drawing), two MAX98357A boards standing in grooved posts with Dupont plugs, the CQRobot 70 × 31 × 16 mm speaker held by lid pins in its screw holes, PJ-392 key and headphone sockets, ruthex M3 inserts. Reviewed by Codex; fixes applied. Not printed yet: print `stl/fjarrnyckel-coupon.stl` first and try the real parts in it. Put 1 mm foam tape on the lid's four speaker pads. `fjarrnyckel-box.jpg` is a generated picture of an earlier version, not a photo of a print. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
 ## Hardware for the box

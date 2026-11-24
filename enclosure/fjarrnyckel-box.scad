@@ -15,7 +15,7 @@
 // The sizes under "Measure these" are taken from data sheets and typical clone boards.
 // Measure your own parts with calipers and correct them before printing.
 
-part = "assembly";   // assembly | open | base | lid | lens | print_lid | cut_post | cut_speaker
+part = "assembly";   // assembly | open | base | lid | lens | print_lid | coupon | cut_post | cut_speaker
 
 $fn = 64;
 
@@ -53,6 +53,8 @@ spk_l = 70.0;        //              length
 spk_h = 16.0;        // front of the plate to the back of the box
 spk_holes = [24, 63];   // centre distances of the four corner screw holes (across, along)
 spk_pin = 2.2;       // the lid's locating pins that drop into those holes
+// The lid's pads stop 0.3 mm above the speaker plate: put a strip of 1 mm foam tape on each of the four pads
+// so the speaker is clamped and cannot buzz.
 jack_hole = 6.3;     // thread of the 3.5 mm panel sockets
 headphones = true;   // second socket hole for headphones
 
@@ -142,6 +144,8 @@ module base() {
       for (amp_y = amp_ys, side = [0, 1]) difference() {
         translate([amp_x - 1.6, side ? amp_y + amp_w + fit - 1.3 : amp_y - fit - 2.2, 0]) cube([amp_t + 2 * fit + 3.2, 3.5, amp_ledge + 14]);
         translate([amp_x - fit, (side ? amp_y + amp_w - 1.3 : amp_y - fit - 0.01), amp_ledge]) cube([amp_t + 2 * fit, 1.3 + fit + 0.01, 20]);
+        // the plug-side lip starts above the Dupont plugs: the outermost plugs sit right at the board's edge
+        translate([amp_x - 1.7, side ? amp_y + amp_w + fit - 1.4 : amp_y - fit - 2.3, -1]) cube([1.7 - fit, 3.7, amp_ledge + 4.5 + 1]);
       }
       // the speaker's cradle: two ribs it stands on and four corner guides
       for (y = [spk_y + 10, spk_y + spk_l - 12]) translate([spk_x, y, 0]) cube([spk_w, 2, spk_lift]);
@@ -195,7 +199,7 @@ module lid() {
       }
       for (sx = [-1, 1], sy = [-1, 1]) translate([spk_x + spk_w / 2 + sx * spk_holes[0] / 2, spk_y + spk_l / 2 + sy * spk_holes[1] / 2, 0]) {
         translate([-3, -3, in_h - 2.2 + fit]) cube([6, 6, 2.5 - fit]);
-        translate([0, 0, in_h - 2.2 + fit - 2]) cylinder(d = spk_pin, h = 2.2, $fn = 20);
+        translate([0, 0, in_h - 2.2 + fit - 2]) cylinder(d1 = spk_pin - 0.8, d2 = spk_pin, h = 2.2, $fn = 20);   // tapered, so the lid finds the holes
       }
     }
     for (p = posts) translate([p[0], p[1], -1]) {
@@ -245,7 +249,7 @@ module parts() {
     color("#9aa0a6") { translate([0, 0, -floor_t + head_h - 8 + 8]) translate([0, 0, 0]) cylinder(d = 2.9, h = 0.01); translate([0, 0, -floor_t + head_h]) cylinder(d = 2.9, h = 8); translate([0, 0, -floor_t - 0.3]) cylinder(d = 5.6, h = head_h + 0.3); }
   }
   // wires from the board to the amplifier and the sockets, through the tunnel under the speaker
-  color("#d9822b") for (i = [0 : 4]) translate([esp_cx + 14, in_d / 2 - 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = amp_x - amp_plug - esp_cx - 12, $fn = 12);
+  color("#d9822b") for (i = [0 : 4]) translate([esp_cx + esp_w / 2 + 1.2, in_d / 2 - 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = amp_x - amp_plug - esp_cx - esp_w / 2 - 1.2, $fn = 12);
   color("#3aa655") for (i = [0 : 2]) translate([esp_cx + 14, in_d / 2 + 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = jack_x[0] - esp_cx - 14, $fn = 12);
   // sockets
   for (x = jack_x) translate([x, in_d + wall + 2, jack_z]) rotate([90, 0, 0]) {
@@ -255,7 +259,22 @@ module parts() {
   }
 }
 
+// Fit test, about 20 minutes: one end of a board saddle with its stop, the front amplifier stand, a lid post
+// with its insert hole and one speaker pin. Print it, then try the real board, a plugged amplifier, an insert
+// and the speaker before printing the box.
+module coupon() {
+  intersection() { base(); translate([esp_cx - row_pitch / 2 - 3, hdr_y0 - 3, -floor_t]) cube([row_pitch + 6, 14, saddle_z + 2 + floor_t]); }
+  translate([-40, 20, 0]) intersection() { base(); translate([amp_x - 3, amp_ys[0] - 4, -floor_t]) cube([10, amp_w + 8, amp_ledge + 14 + floor_t]); }
+  // a lid post upside down, as the lid prints: base plate, post, insert hole
+  translate([10, 10, -floor_t]) difference() {
+    union() { translate([-6, -6, 0]) cube([12, 12, lid_t]); cylinder(d = post_d, h = lid_t + insert_l + 3); }   // shortened
+    translate([0, 0, lid_t + 3 - 0.2]) cylinder(d = insert_d, h = insert_l + 1);
+  }
+  translate([25, 10, -floor_t]) { translate([-4, -4, 0]) cube([8, 8, lid_t]); translate([0, 0, lid_t]) cylinder(d1 = spk_pin, d2 = spk_pin - 0.8, h = 2.2, $fn = 20); }
+}
+
 if (part == "base") base();
+else if (part == "coupon") coupon();
 else if (part == "lid") lid();
 else if (part == "print_lid") translate([0, in_d, in_h + lid_t]) rotate([180, 0, 0]) lid();
 else if (part == "lens") lens();
