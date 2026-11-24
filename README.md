@@ -36,7 +36,7 @@ Work in progress. Honest state of each part:
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
 | Status light and tones, signed firmware, reset with the key | From 0.6.0. |
-| Enclosure (`enclosure/`) | Draft; will change. |
+| Enclosure (`enclosure/`) | Redrawn for the bare board on its headers, one key socket and an optional headphone socket. Not printed yet; the part sizes in the file must be measured first. `fjarrnyckel-box.jpg` is a generated picture of the design, not a photo of a print. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
 ## Hardware for the box
