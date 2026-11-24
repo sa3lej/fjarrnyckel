@@ -36,7 +36,7 @@ Work in progress. Honest state of each part:
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
 | Status light and tones, signed firmware, reset with the key | From 0.6.0. |
-| Enclosure (`enclosure/`) | Designed for the parts listed below and reviewed; first print under way. |
+| Enclosure (`enclosure/`) | Printed and assembled (2026-11-24): everything fitted as drawn. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
 ## Build your own

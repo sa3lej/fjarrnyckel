@@ -159,8 +159,8 @@ module base() {
     for (x = jack_x) translate([x, in_d - 1, jack_z]) rotate([-90, 0, 0]) { cylinder(d = jack_hole, h = wall + 2); translate([0, 0, 1 + wall - 0.8]) cylinder(d = 12, h = 2); }
     // rear wall lettering
     translate([esp_cx, in_d + wall - engrave, usb_z + 9.2]) rotate([90, 0, 180]) label("USB", 2.6);
-    translate([jack_x[0], in_d + wall - engrave, jack_z + 9.5]) rotate([90, 0, 180]) label("KEY", 2.6);
-    if (headphones) translate([jack_x[1], in_d + wall - engrave, jack_z + 9.5]) rotate([90, 0, 180]) label("PHONES", 2.6);
+    translate([jack_x[0], in_d + wall - engrave, jack_z + 9.5]) rotate([90, 0, 180]) label("KEY", 2.2);
+    if (headphones) translate([jack_x[1], in_d + wall - engrave, jack_z + 9.5]) rotate([90, 0, 180]) label("PHONES", 2.2);
     // screws from below, and shallow seats for four stick-on feet
     for (p = posts) translate([p[0], p[1], -floor_t - 1]) {
       cylinder(d = screw_clear, h = floor_t + 2);
