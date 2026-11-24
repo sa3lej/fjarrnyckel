@@ -16,6 +16,7 @@
 #include "class/hid/hid_device.h"
 #include "class/midi/midi_device.h"
 #include "class/audio/audio_device.h"
+#include "device/usbd_pvt.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -108,10 +109,17 @@ bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n, uint8_t func_id, uint8_t 
   rx_bytes += n; rx_packets++;
   return true;
 }
+// The USB controller's own view of the sound card's OUT endpoint (3) and feedback endpoint (IN 3): control,
+// interrupt and transfer-size registers, plus the core interrupt status and the frame number. Read-only.
+#define OTG(off) (*(volatile uint32_t *)(0x60080000 + (off)))
 int usb_audio_report(char *out, int size) {
-  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%u,\"underruns\":%lu,\"gain\":%.3f}",
+  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%u,\"underruns\":%lu,\"gain\":%.3f,"
+                  "\"busyOut\":%s,\"busyFb\":%s,\"doepctl\":\"%08lx\",\"doepint\":\"%08lx\",\"doeptsiz\":\"%08lx\",\"diepctl\":\"%08lx\",\"diepint\":\"%08lx\",\"gintsts\":\"%08lx\",\"gintmsk\":\"%08lx\",\"dsts\":\"%08lx\"}",
                   streaming ? "true" : "false", primed ? "true" : "false", (unsigned long)itf_sets, last_alt == 0xFF ? -1 : last_alt,
-                  (unsigned long)rx_bytes, (unsigned long)rx_packets, ready ? tud_audio_available() : 0, (unsigned long)underruns, host_gain);
+                  (unsigned long)rx_bytes, (unsigned long)rx_packets, ready ? tud_audio_available() : 0, (unsigned long)underruns, host_gain,
+                  ready && usbd_edpt_busy(0, 0x03) ? "true" : "false", ready && usbd_edpt_busy(0, 0x83) ? "true" : "false",
+                  (unsigned long)OTG(0xB60), (unsigned long)OTG(0xB68), (unsigned long)OTG(0xB70),
+                  (unsigned long)OTG(0x960), (unsigned long)OTG(0x968), (unsigned long)OTG(0x014), (unsigned long)OTG(0x018), (unsigned long)OTG(0x808));
 }
 
 // Fills n samples of radio audio; silence when nothing is coming. Called by the audio task every block.

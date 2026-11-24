@@ -84,12 +84,12 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[2400];
+  char ssid[80], host[140], login[2 * 256 + 8], body[2700];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
   link_info_t l = link_info();
-  char ua[200]; usb_audio_report(ua, sizeof ua);
+  char ua[480]; usb_audio_report(ua, sizeof ua);
   update_info_t u = update_info();
   snprintf(body, sizeof body,
     "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
