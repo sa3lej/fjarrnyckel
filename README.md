@@ -238,7 +238,8 @@ adapters do, and nothing is sent to the radio:
 
 - keyboard: dit is Left Ctrl, dah is Right Ctrl (VBand, Morse Code World, Morseorama, Lids Anonymous, ...);
 - MIDI: notes 1 and 2 for the paddles, note 0 for finished keying; a site that speaks Vail's MIDI protocol
-  switches the box over by itself.
+  switches the box over by itself. The box stays in MIDI until the computer lets go of it (unplugged or asleep)
+  or you press **Back to keyboard** on the box's page: closing a site's tab sends nothing the box can hear.
 
 With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
 **The two paddles** the site does the keying.

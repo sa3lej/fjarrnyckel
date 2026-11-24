@@ -105,6 +105,7 @@ void usb_start(void);
 void usb_key(bool dit, bool dah, bool keyed);   // every millisecond: what the computer should see now
 bool usb_connected(void);
 bool usb_midi_mode(void);                 // a site has switched the box from keyboard to MIDI
+void usb_keyboard_mode(void);             // back to a keyboard and the box's own keyer settings
 bool usb_audio_playing(void);             // the computer is playing sound to the box
 int usb_audio_report(char *out, int size); // the sound card's counters as JSON, for the status
 void usb_audio_take(int16_t *out, int n); // n samples of that sound at 48 kHz; silence when there is none

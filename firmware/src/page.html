@@ -177,6 +177,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <div class="seg" id="target"><button type="button" data-v="0" data-t="tRadio"></button><button type="button" data-v="1" data-t="tComputer"></button></div>
  <div id="trainBox" hidden>
   <div class="mini" style="margin-top:.8rem"><span class="lamp" id="usbLamp"></span><div><div id="usbState" class="strong"></div><div id="usbDetail" class="sub"></div></div></div>
+  <button class="quiet" id="usbKb" type="button" data-t="usbKb" style="margin-top:.6rem" hidden></button>
   <div id="rawBox"><label data-t="rawL" style="margin-top:.9rem"></label>
   <div class="seg" id="usbRaw"><button type="button" data-v="0" data-t="rawKeyed"></button><button type="button" data-v="1" data-t="rawPaddles"></button></div>
   <p class="hint" id="rawHint"></p></div>
@@ -281,7 +282,7 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  relayL:"Relay",relayAuto:"Automatic (same as the receiver)",relayHere:"The box uses {a}.",relayPeer:" The receiver uses {b}.",relayBad:" They must be the same for the box to find the receiver by itself.",relayWhy:"Tailscale's relay is where the box and the receiver first find each other.",
  tsOff:"Switch off",tsForget:"Start over",tsForgetAsk:"Erase the box's Tailscale sign-in? It then has to be added again.",lNoTs:"Waiting for Tailscale",lNoTsD:"The receiver's address is on Tailscale.",via:"through Tailscale",
  targetL:"The key goes to",tRadio:"The radio",tComputer:"The computer (training)",keyTypeL:"Key type",
- usbOn:"The computer sees the box as a key",usbOnD:"Open a practice site, for example VBand, Vail or Morse Code World, and send.",usbMidi:"A site is using the box over MIDI",usbOff:"Not connected to a computer",usbOffD:"Run a cable from the box's port marked USB to the computer.",
+ usbOn:"The computer sees the box as a key",usbOnD:"Open a practice site, for example VBand, Vail or Morse Code World, and send.",usbMidi:"A site has switched the box to MIDI",usbMidiD:"Done with that site? Switch back so sites that use the keyboard hear the key again. Unplugging the box does the same.",usbKb:"Back to keyboard",usbOff:"Not connected to a computer",usbOffD:"Run a cable from the box's port marked USB to the computer.",
  rawL:"What the site gets",rawKeyed:"Finished keying",rawPaddles:"The two paddles",rawHintK:"The box's own keyer and sidetone, as on the air. Set the site to straight key.",rawHintP:"Left Ctrl is dit, right Ctrl is dah. The site makes the elements and the tone; the box is silent.",
  trainNote:"Training: the key does not go to the radio.",
  t_home:"Overview",t_key:"Key",t_net:"Connection",t_box:"Box",quick:"Quick settings",hTrain:"Training: the key goes to the computer",hNoBox:"No contact with the box",
@@ -315,7 +316,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  relayL:"Relä",relayAuto:"Automatiskt (samma som mottagaren)",relayHere:"Lådan använder {a}.",relayPeer:" Mottagaren använder {b}.",relayBad:" De måste vara samma för att lådan ska hitta mottagaren själv.",relayWhy:"Tailscales relä är platsen där lådan och mottagaren först hittar varandra.",
  tsOff:"Stäng av",tsForget:"Börja om",tsForgetAsk:"Radera lådans Tailscale-inloggning? Den måste sedan läggas till igen.",lNoTs:"Väntar på Tailscale",lNoTsD:"Mottagarens adress ligger på Tailscale.",via:"via Tailscale",
  targetL:"Nyckeln går till",tRadio:"Radion",tComputer:"Datorn (träning)",keyTypeL:"Typ av nyckel",
- usbOn:"Datorn ser lådan som en nyckel",usbOnD:"Öppna en övningssida, till exempel VBand, Vail eller Morse Code World, och sänd.",usbMidi:"En sida använder lådan via MIDI",usbOff:"Inte ansluten till en dator",usbOffD:"Dra en kabel från lådans port märkt USB till datorn.",
+ usbOn:"Datorn ser lådan som en nyckel",usbOnD:"Öppna en övningssida, till exempel VBand, Vail eller Morse Code World, och sänd.",usbMidi:"En sida har ställt om lådan till MIDI",usbMidiD:"Klar med den sidan? Växla tillbaka så hör sidor som använder tangentbordet nyckeln igen. Att dra ur lådan gör samma sak.",usbKb:"Tillbaka till tangentbord",usbOff:"Inte ansluten till en dator",usbOffD:"Dra en kabel från lådans port märkt USB till datorn.",
  rawL:"Vad sidan får",rawKeyed:"Färdig nyckling",rawPaddles:"De två paddlarna",rawHintK:"Lådans egen nycklare och medhörning, som i luften. Ställ sidan på rak nyckel.",rawHintP:"Vänster Ctrl är kort, höger Ctrl är lång. Sidan gör tecknen och tonen; lådan är tyst.",
  trainNote:"Träning: nyckeln går inte till radion.",
  t_home:"Översikt",t_key:"Nyckel",t_net:"Anslutning",t_box:"Lådan",quick:"Snabbval",hTrain:"Träning: nyckeln går till datorn",hNoBox:"Ingen kontakt med lådan",
@@ -384,7 +385,7 @@ let locked=false;
 function paintPw(){if(S)$("bkOpen").hidden=!!S.lock;$("lock").hidden=!locked;$("app").hidden=locked;const on=S&&S.lock;$("pwLamp").className="lamp "+(on?"ok":"");
  $("pwState").textContent=t(on?"pwOnS":"pwOffS");$("pwDetail").textContent=on?"":t("pwOffD");$("pwLabel").textContent=t(on?"pwChange":"pwNew");$("pwSet").textContent=t(on?"pwSetChange":"pwSet");$("pwOff").hidden=!on}
 function paintUsb(){$("trainBox").hidden=cur.target!=1;$("rawBox").hidden=cur.keyType!=1;$("rawHint").textContent=t(cur.usbRaw==1?"rawHintP":"rawHintK");
- const on=S&&S.usb;$("usbLamp").className="lamp "+(on?"ok":"");$("usbState").textContent=t(on?(S.usbMidi?"usbMidi":"usbOn"):"usbOff");$("usbDetail").textContent=t(on?"usbOnD":"usbOffD")}
+ const on=S&&S.usb;$("usbLamp").className="lamp "+(on?"ok":"");$("usbState").textContent=t(on?(S.usbMidi?"usbMidi":"usbOn"):"usbOff");$("usbDetail").textContent=t(on?(S.usbMidi?"usbMidiD":"usbOnD"):"usbOffD");$("usbKb").hidden=!(on&&S.usbMidi)}
 // The overview repeats what the three connection cards say, in one line each, and puts the one that matters most on top.
 function paintHome(){const row=(id,lampId,stateId)=>{const r=$(id);r.querySelector(".lamp").className=$(lampId).className;r.querySelector(".rv").textContent=$(stateId).textContent};
  row("rWifi","lamp","state");row("rTs","tsLamp","tsState");row("rLink","linkLamp","linkState");
@@ -427,6 +428,7 @@ $("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};
 $("lsave").onclick=async()=>{await post("/api/link",{host:$("lhost").value.trim(),port:$("lport").value.trim(),key:$("lkey").value.trim()}).catch(()=>{});$("lkey").value="";$("lsave").textContent=t("lsaved");setTimeout(texts,1500);status()};
 $("showts").onclick=()=>{$("tsKey").classList.toggle("shown");texts()};
 $("tsKeyToggle").onclick=()=>{$("tsKeyBox").hidden=false;$("tsKeyToggle").hidden=true;$("tsKey").focus()};
+$("usbKb").onclick=async()=>{await post("/api/usb/keyboard",{}).catch(()=>{});status()};
 const tsPost=async d=>{await post("/api/tailscale",d).catch(()=>{});$("tsKey").value="";status()};
 $("tsOn").onclick=()=>tsPost({on:1,key:$("tsKey").value.trim()});
 $("tsOff").onclick=()=>tsPost({on:0});

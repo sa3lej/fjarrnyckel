@@ -85,6 +85,16 @@ bool usb_raw(void) { return host_raw >= 0 ? host_raw : settings.usb_raw; }
 int usb_iambic(void) { return host_iambic >= 0 ? host_iambic : settings.iambic_b; }
 int usb_wpm(void) { return host_wpm ? host_wpm : settings.wpm; }
 
+// Back to how the box starts: a keyboard, with the box's own keyer settings. A site that wants MIDI says so again
+// when it next opens the box. Closing a site's tab sends nothing over USB, so the box cannot notice that on its own:
+// it happens when the computer lets go of the box (sleep, a USB reset) or when asked from the page.
+void usb_keyboard_mode(void) {
+  if (midi_mode) ESP_LOGI(TAG, "back to keyboard");
+  midi_mode = false; host_raw = -1; host_iambic = -1; host_wpm = 0;
+}
+void tud_suspend_cb(bool remote_wakeup_en) { usb_keyboard_mode(); }
+static void usb_event(tinyusb_event_t *event, void *arg) { if (event->id == TINYUSB_EVENT_DETACHED) usb_keyboard_mode(); }
+
 // Called every millisecond by the keyer with what the computer should see now. Nothing here waits: a change
 // that cannot go out this millisecond goes out the next.
 void usb_key(bool dit, bool dah, bool keyed) {
@@ -247,6 +257,7 @@ void usb_start(void) {
   tinyusb_config_t cfg = TINYUSB_DEFAULT_CONFIG();
   cfg.descriptor.device = &device_desc;
   cfg.descriptor.full_speed_config = config_desc;
+  cfg.event_cb = usb_event;
   if (tinyusb_driver_install(&cfg) != ESP_OK) { ESP_LOGE(TAG, "the USB port could not be set up as a key"); return; }
   ready = true;
   xTaskCreatePinnedToCore(midi_task, "usbmidi", 3072, NULL, 4, NULL, 0);

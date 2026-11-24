@@ -174,6 +174,13 @@ static esp_err_t post_link(httpd_req_t *req) {
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+// Training: puts the USB port back to a keyboard after a MIDI site, without unplugging the box.
+static esp_err_t post_usb_keyboard(httpd_req_t *req) {
+  usb_keyboard_mode();
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 // Switches Tailscale on or off. An auth key is optional: without one the page offers a sign-in link instead.
 // "forget" erases the box's identity on the tailnet, so the next start registers it anew.
 static esp_err_t post_tailscale(httpd_req_t *req) {
@@ -340,6 +347,7 @@ void web_start(void) {
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
     { .uri = "/api/backup", .method = HTTP_POST, .handler = post_backup },
     { .uri = "/api/restore", .method = HTTP_POST, .handler = post_restore },
+    { .uri = "/api/usb/keyboard", .method = HTTP_POST, .handler = post_usb_keyboard },
   };
   new_session();
   for (int i = 0; i < sizeof routes / sizeof routes[0]; i++) {
