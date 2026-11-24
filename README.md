@@ -31,7 +31,7 @@ Work in progress. Honest state of each part:
 |---|---|
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
-| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. The USB sound card for radio audio (0.11.0) is not yet tried on hardware. |
+| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. The USB sound card for radio audio streams from a Mac without gaps since 0.11.3 (2026-11-24). |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
@@ -248,8 +248,8 @@ On its USB port the box is also a sound card, called **Fjarrnyckel**. Choose it 
 with its own volume (Key → Radio sound from the computer). The sidetone never leaves the box, so it stays
 instant; the keying path to the radio is not touched.
 
-The sound card runs at 48 kHz, 16-bit mono. It reports to the computer how fast the box actually plays, so the
-two clocks do not drift apart. The computer's own volume and mute work as usual. The radio sound plays in the
+The sound card runs at 48 kHz, 16-bit mono. The box follows the computer's clock: it plays the incoming sound a
+few hundredths of a percent faster or slower to keep about 8 ms buffered, so the two clocks never drift apart. The computer's own volume and mute work as usual. The radio sound plays in the
 headphones only, not in the speaker.
 
 ## Tailscale relay region
