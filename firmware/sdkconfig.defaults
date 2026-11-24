@@ -33,8 +33,12 @@ CONFIG_MBEDTLS_CHACHAPOLY_C=y
 CONFIG_MBEDTLS_HKDF_C=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
-# Relay through Frankfurt when no direct path exists (the default is Dallas).
-CONFIG_ML_DERP_REGION=4
+# Tailscale relay region the box calls home: 28 = Helsinki. MicroLink keeps one relay connection, to its own
+# home region, and a peer only listens on ITS home region until it has something to say to us. So the box must
+# be at home in the same region as the computer by the radio, or its first packets never arrive there
+# (seen 2026-11-24 with the box in Frankfurt and the receiver in Helsinki). Check the receiver's region with
+# "tailscale netcheck" (Nearest DERP) and the number with "tailscale debug derp-map".
+CONFIG_ML_DERP_REGION=28
 # The box confirms a new firmware itself at start (update.c); MicroLink must not also restart it.
 # CONFIG_ML_OTA_ROLLBACK is not set
 # The peer list kept in flash has to fit the 24 KB settings area next to our own settings.

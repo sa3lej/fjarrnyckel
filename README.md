@@ -77,6 +77,23 @@ adapters do, and nothing is sent to the radio:
 With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
 **The two paddles** the site does the keying.
 
+## Wiring as built
+
+| Part | Connection |
+|---|---|
+| Key socket (3.5 mm stereo) | tip GPIO 4, ring GPIO 5, sleeve GND |
+| Speaker amplifier (MAX98357A) | BCLK GPIO 15, LRC GPIO 16, DIN GPIO 17, Vin 5V, GND |
+| Headphone amplifier (MAX98357A) | BCLK GPIO 12, LRC GPIO 13, DIN GPIO 14, Vin 5V, GND, GAIN left open |
+| Headphone socket | amplifier + through 220 Ω to tip and ring joined; amplifier − to the sleeve, which must not touch GND |
+
+Both amplifiers run from the board's 5V pin. On 3.3 V the headphone amplifier distorted at higher volume.
+On some clone boards the 5V pin only carries USB power once the IN-OUT pads are bridged.
+
+**Tailscale relay region.** The box's Tailscale client keeps one relay connection, to its own home region,
+set by `CONFIG_ML_DERP_REGION` in `firmware/sdkconfig.defaults` (28, Helsinki). It has to be the home
+region of the computer by the radio; with different regions the box cannot reach the receiver until the
+receiver happens to contact the box. `tailscale netcheck` on that computer shows its region.
+
 ## Updates
 
 A new version is on trial for its first minute: if it crashes, hangs or loses power before that, the
