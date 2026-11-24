@@ -13,7 +13,20 @@
 html{background:var(--deep)}
 body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--cream);
  background:radial-gradient(120% 60% at 50% 0,#0E3A60 0,var(--night) 45%,var(--deep) 100%) fixed;min-height:100vh;-webkit-text-size-adjust:100%}
-main{max-width:34rem;margin:0 auto;padding:calc(1.2rem + env(safe-area-inset-top)) 1rem 3rem}
+main{max-width:34rem;margin:0 auto;padding:calc(1.2rem + env(safe-area-inset-top)) 1rem 6.5rem}
+.tab[hidden],.status[hidden]{display:none}#hWpmBox{margin-top:.9rem}.tab>h2:first-child{margin-top:.4rem}
+nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;gap:.2rem;background:#051B2EF2;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:.35rem .5rem calc(.35rem + env(safe-area-inset-bottom))}
+nav#tabs[hidden]{display:none}
+nav#tabs button{flex:1;max-width:8.5rem;position:relative;display:grid;justify-items:center;gap:.12rem;background:none;border:0;border-radius:12px;color:var(--dim);font:inherit;font-size:.72rem;line-height:1.2;padding:.4rem .2rem;cursor:pointer}
+nav#tabs button.on{color:var(--brass2);background:#ffffff0d}
+nav#tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav#tabs .dot{position:absolute;top:.3rem;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--deep);display:none}
+nav#tabs button.warn .dot{display:block}nav#tabs button.note .dot{display:block;background:var(--brass)}
+@media(min-width:760px){main{padding-bottom:3rem}nav#tabs{position:static;background:var(--deep);border:1px solid var(--line);border-radius:14px;padding:.3rem;margin:0 0 1.2rem}
+ nav#tabs button{max-width:none;grid-auto-flow:column;justify-content:center;align-items:center;gap:.45rem;font-size:.9rem;padding:.55rem .4rem}nav#tabs svg{width:20px;height:20px}nav#tabs .dot{top:.35rem;left:auto;right:.5rem}}
+.hero{padding:1.1rem 1rem;margin-bottom:.9rem}.hero .lamp{width:16px;height:16px}#hState{font-weight:700;font-size:1.08rem}#hDetail{color:var(--dim);font-size:.9rem}#hDetail:empty{display:none}
+.rows{padding:.2rem 1rem}.row{display:flex;align-items:center;gap:.75rem;width:100%;background:none;border:0;border-bottom:1px solid var(--line);color:inherit;font:inherit;text-align:left;padding:.8rem 0;cursor:pointer}
+.row:last-child,.row.last{border-bottom:0}.row[hidden]{display:none}.rl{font-weight:600;white-space:nowrap}.rv{flex:1;min-width:0;text-align:right;color:var(--dim);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chev{color:var(--dim);font-size:1.3rem;line-height:1}
 header{display:flex;align-items:center;gap:.9rem;margin:.4rem 0 1.3rem}
 header img{width:76px;height:76px;border-radius:18px;box-shadow:0 8px 24px #0008,0 0 0 1px #ffffff14}
 h1{font:600 1.75rem/1.1 Georgia,"Times New Roman",serif;letter-spacing:.01em;margin:0;color:var(--cream)}
@@ -76,6 +89,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <div><h1>Fjärrnyckel</h1><p data-t="tagline"></p></div>
  <button id="lang" type="button"></button>
 </header>
+<nav id="tabs"><button type="button" data-tab="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg><span data-t="t_home"></span><i class="dot"></i></button><button type="button" data-tab="key"><svg viewBox="0 0 24 24"><path d="M3 18h18"/><path d="M5 18v-3h9l5-4"/><circle cx="19" cy="9" r="2"/><path d="M8 15v-2"/></svg><span data-t="t_key"></span><i class="dot"></i></button><button type="button" data-tab="net"><svg viewBox="0 0 24 24"><path d="M3 9a13 13 0 0 1 18 0"/><path d="M6.5 12.5a8 8 0 0 1 11 0"/><path d="M10 16a3 3 0 0 1 4 0"/><circle cx="12" cy="19" r=".6"/></svg><span data-t="t_net"></span><i class="dot"></i></button><button type="button" data-tab="box"><svg viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="11" rx="2.5"/><path d="M8 11h3M8 14h8"/><circle cx="16.5" cy="11" r=".7"/></svg><span data-t="t_box"></span><i class="dot"></i></button></nav>
 
 <div id="lock" hidden><div class="card"><div class="center">
  <div class="tick wait">🔒</div><div class="strong" data-t="lockT"></div><p class="hint" data-t="lockD"></p>
@@ -84,7 +98,27 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <button class="main" id="unlock" type="button"></button></div></div></div>
 <div id="app">
 
-<div class="status" role="status"><span class="lamp" id="lamp"></span><div><div id="state">…</div><div id="detail"></div></div></div>
+<section class="tab" data-tab="home">
+<div class="status hero" role="status"><span class="lamp" id="hLamp"></span><div><div id="hState">…</div><div id="hDetail"></div></div></div>
+<div class="card rows">
+ <button class="row" type="button" data-go="net" id="rWifi"><span class="lamp"></span><span class="rl">Wi-Fi</span><span class="rv"></span><span class="chev">›</span></button>
+ <button class="row" type="button" data-go="net" id="rTs"><span class="lamp"></span><span class="rl">Tailscale</span><span class="rv"></span><span class="chev">›</span></button>
+ <button class="row" type="button" data-go="net" id="rLink"><span class="lamp"></span><span class="rl" data-t="link"></span><span class="rv"></span><span class="chev">›</span></button>
+ <button class="row" type="button" data-go="box" id="rUp" hidden><span class="lamp busy"></span><span class="rl" data-t="software"></span><span class="rv"></span><span class="chev">›</span></button>
+</div>
+<h2 data-t="quick"></h2>
+<div class="card">
+ <label data-t="targetL"></label>
+ <div class="seg" id="h_target"><button type="button" data-v="0" data-t="tRadio"></button><button type="button" data-v="1" data-t="tComputer"></button></div>
+ <div id="hWpmBox"><label for="h_wpm"><span data-t="speed"></span><b><span id="h_wpmV"></span> WPM</b></label>
+ <input id="h_wpm" type="range" min="5" max="60"></div>
+ <label for="h_volume"><span data-t="volume"></span><b><span id="h_volumeV"></span></b></label>
+ <input id="h_volume" type="range" min="0" max="100">
+</div>
+</section>
+
+<section class="tab" data-tab="net" hidden>
+<div class="status" role="status" hidden><span class="lamp" id="lamp"></span><div><div id="state">…</div><div id="detail"></div></div></div>
 
 <h2 data-t="wifi"></h2>
 <div class="card" id="wifiCard">
@@ -134,6 +168,9 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <button class="main" id="lsave" type="button"></button>
 </div>
 
+</section>
+
+<section class="tab" data-tab="key" hidden>
 <h2 data-t="key"></h2>
 <div class="card">
  <label data-t="targetL"></label>
@@ -166,6 +203,9 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <button class="quiet" id="beep" type="button" style="margin-top:1rem"></button>
 </div>
 
+</section>
+
+<section class="tab" data-tab="box" hidden>
 <h2 data-t="signals"></h2>
 <div class="card">
  <label data-t="ledL"></label>
@@ -198,6 +238,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <p class="hint" id="upMsg"></p>
 </div>
 
+</section>
 </div>
 <footer>Fjärrnyckel · <span data-t="foot"></span></footer>
 </main>
@@ -219,6 +260,7 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  usbOn:"The computer sees the box as a key",usbOnD:"Open a practice site, for example VBand, Vail or Morse Code World, and send.",usbMidi:"A site is using the box over MIDI",usbOff:"Not connected to a computer",usbOffD:"Run a cable from the box's port marked USB to the computer.",
  rawL:"What the site gets",rawKeyed:"Finished keying",rawPaddles:"The two paddles",rawHintK:"The box's own keyer and sidetone, as on the air. Set the site to straight key.",rawHintP:"Left Ctrl is dit, right Ctrl is dah. The site makes the elements and the tone; the box is silent.",
  trainNote:"Training: the key does not go to the radio.",
+ t_home:"Overview",t_key:"Key",t_net:"Connection",t_box:"Box",quick:"Quick settings",hTrain:"Training: the key goes to the computer",hNoBox:"No contact with the box",
  signals:"Signals",on:"On",off:"Off",ledL:"Status light",ledHint:"Green: ready. Amber: the radio is not ready. Red: no Wi-Fi. Blue, blinking: the setup network is up.",tonesL:"Status tones",tonesHint:"The letter R in Morse when keying comes on, two low tones when it goes off.",
  signedY:"signed",signedN:"not signed",svcOn:"Service mode until the box restarts: firmware that is not signed can be installed.",
  protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it: hold the key down while plugging the box in, and let go after the first beep (five seconds). That removes the password.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
@@ -245,6 +287,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  usbOn:"Datorn ser lådan som en nyckel",usbOnD:"Öppna en övningssida, till exempel VBand, Vail eller Morse Code World, och sänd.",usbMidi:"En sida använder lådan via MIDI",usbOff:"Inte ansluten till en dator",usbOffD:"Dra en kabel från lådans port märkt USB till datorn.",
  rawL:"Vad sidan får",rawKeyed:"Färdig nyckling",rawPaddles:"De två paddlarna",rawHintK:"Lådans egen nycklare och medhörning, som i luften. Ställ sidan på rak nyckel.",rawHintP:"Vänster Ctrl är kort, höger Ctrl är lång. Sidan gör tecknen och tonen; lådan är tyst.",
  trainNote:"Träning: nyckeln går inte till radion.",
+ t_home:"Översikt",t_key:"Nyckel",t_net:"Anslutning",t_box:"Lådan",quick:"Snabbval",hTrain:"Träning: nyckeln går till datorn",hNoBox:"Ingen kontakt med lådan",
  signals:"Signaler",on:"På",off:"Av",ledL:"Statuslampa",ledHint:"Grön: klar. Gul: radion är inte redo. Röd: inget Wi-Fi. Blå, blinkande: inställningsnätverket är igång.",tonesL:"Statustoner",tonesHint:"Bokstaven R i morse när nycklingen slås på, två låga toner när den slås av.",
  signedY:"signerad",signedN:"inte signerad",svcOn:"Serviceläge tills lådan startar om: programvara som inte är signerad kan installeras.",
  protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det: håll nyckeln nedtryckt när lådan kopplas in och släpp efter första pipet (fem sekunder). Då tas lösenordet bort.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
@@ -294,17 +337,33 @@ function paintPw(){$("lock").hidden=!locked;$("app").hidden=locked;const on=S&&S
  $("pwState").textContent=t(on?"pwOnS":"pwOffS");$("pwDetail").textContent=on?"":t("pwOffD");$("pwLabel").textContent=t(on?"pwChange":"pwNew");$("pwSet").textContent=t(on?"pwSetChange":"pwSet");$("pwOff").hidden=!on}
 function paintUsb(){$("trainBox").hidden=cur.target!=1;$("rawBox").hidden=cur.keyType!=1;$("rawHint").textContent=t(cur.usbRaw==1?"rawHintP":"rawHintK");
  const on=S&&S.usb;$("usbLamp").className="lamp "+(on?"ok":"");$("usbState").textContent=t(on?(S.usbMidi?"usbMidi":"usbOn"):"usbOff");$("usbDetail").textContent=t(on?"usbOnD":"usbOffD")}
-function paint(){paintPw();if(locked)return;paintUsb();paintLink();paintTs();paintUp();const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
+// The overview repeats what the three connection cards say, in one line each, and puts the one that matters most on top.
+function paintHome(){const row=(id,lampId,stateId)=>{const r=$(id);r.querySelector(".lamp").className=$(lampId).className;r.querySelector(".rv").textContent=$(stateId).textContent};
+ row("rWifi","lamp","state");row("rTs","tsLamp","tsState");row("rLink","linkLamp","linkState");
+ $("rUp").hidden=!(S&&S.upAvailable);$("rLink").classList.toggle("last",$("rUp").hidden);if(S&&S.upAvailable)$("rUp").querySelector(".rv").textContent=t("upNew").replace("{v}",S.latest);
+ const set=(c,a,b)=>{$("hLamp").className="lamp "+c;$("hState").textContent=a;$("hDetail").textContent=b||""};
+ if(!S)set("bad",t("hNoBox"),t("dLost"));else if(S.wifi!="connected")set($("lamp").className.replace("lamp ",""),$("state").textContent,$("detail").textContent);
+ else if(S.target==1)set(S.usb?"ok":"busy",t("hTrain"),$("usbState").textContent);
+ else set($("linkLamp").className.replace("lamp ",""),$("linkState").textContent,$("linkDetail").textContent);
+ const bad=S&&(S.wifi!="connected"||["needs-login","auth-failed","error"].includes(S.ts)||(S.target==0&&["not-found","no-answer","no-tailscale"].includes(S.link)));
+ const tabs=$("tabs");tabs.hidden=locked;tabs.querySelector('[data-tab="net"]').classList.toggle("warn",!!bad);tabs.querySelector('[data-tab="box"]').classList.toggle("note",!!(S&&(S.upAvailable||S.service)))}
+let tab="";
+function go(k,keep){tab=k;document.querySelectorAll(".tab").forEach(s=>s.hidden=s.dataset.tab!=k);$("tabs").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.tab==k));
+ if(!keep){history.replaceState(null,"","#"+k);window.scrollTo(0,0)}}
+function paint(){paintPw();$("tabs").hidden=locked;if(locked)return;paintUsb();paintLink();paintTs();paintUp();paintWifiTop();paintHome()}
+function paintWifiTop(){const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
  const f=(k)=>t(k).replace("{s}",S.ssid).replace("{ip}",S.ip);
  if(S.wifi=="connected"){lamp.className="lamp ok";$("state").textContent=f("sOk");$("detail").textContent=f("dOk")+(S.setupNetwork?t("dAp"):"")}
  else if(S.wifi=="connecting"){lamp.className="lamp busy";$("state").textContent=f("sCon");$("detail").textContent=""}
  else if(S.wifi=="failed"){lamp.className="lamp bad";$("state").textContent=f("sBad");$("detail").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
  else{lamp.className="lamp";$("state").textContent=t("sNo");$("detail").textContent=t("dNo")}}
-function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}
+function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%");
+  const h=$("h_"+k);if(h){h.value=e.value;$("h_"+k+"V").textContent=e.value;h.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}}
+ $("h_target").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur.target));$("hWpmBox").hidden=cur.keyType!=1;
  for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
  $("paddleBox").hidden=cur.keyType!=1;paintUsb();$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show();if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 for(const k of["wpm","tone","volume"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
 for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
@@ -365,6 +424,11 @@ $("wRetry").onclick=()=>{view("pass");if(!W.open)$("pass").focus()};
 $("join").onclick=async()=>{if(W.manual)W.ssid=$("ssid").value.trim();if(!W.ssid)return $("ssid").focus();
  document.activeElement&&document.activeElement.blur();W.since=Date.now();W.misses=0;view("busy");$("wifiCard").scrollIntoView({block:"center",behavior:"smooth"});
  await post("/api/wifi",{ssid:W.ssid,pass:W.open&&!W.manual?"":$("pass").value}).catch(()=>{})};
+$("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.tab));
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+$("h_target").querySelectorAll("button").forEach(b=>b.onclick=()=>$("target").querySelector('[data-v="'+b.dataset.v+'"]').click());
+for(const k of["wpm","volume"]){$("h_"+k).oninput=()=>{$(k).value=$("h_"+k).value;$(k).oninput()};$("h_"+k).onchange=()=>{$(k).value=$("h_"+k).value;$(k).onchange()}}
+go(["home","key","net","box"].includes(location.hash.slice(1))?location.hash.slice(1):"home",true);
 texts();status();setInterval(status,1500);
 </script>
 </body>
