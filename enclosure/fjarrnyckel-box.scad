@@ -1,11 +1,11 @@
 // Fjärrnyckel enclosure.
 //
-// Holds a bare ESP32-S3-DevKitC-1 (44 pins) standing on its own pin headers, a MAX98357A amplifier board
-// with headers, a 31 x 70 mm boxed speaker and one or two 3.5 mm panel sockets (key, and optionally
+// Holds a bare ESP32-S3-DevKitC-1 (44 pins) standing on its own pin headers, two MAX98357A amplifier boards
+// with headers (front one for the speaker, rear one for the headphones), a 31 x 70 mm boxed speaker and one or two 3.5 mm panel sockets (key, and optionally
 // headphones). The board is not screwed down: the black plastic strips of its two pin rows sit on a pair
 // of saddles with a channel for the pins, stops at both ends of the strips keep it from sliding when a
 // USB plug goes in or out, and a post under the lid keeps it from lifting. The amplifier lies loose in
-// its own seat, away from the board's antenna.
+// its own seat, away from the board's antenna; each amplifier lies loose in its own seat.
 //
 // Parts: base, lid, and a small lens for the status light (print it in a clear or white filament).
 // Print the base as it stands and the lid upside down (flat top on the bed). No supports.
@@ -77,8 +77,9 @@ saddle_z = pcb_z - hdr_h;                       // the pin strips rest here
 hdr_y0 = esp_y0 + (esp_l - hdr_l) / 2;          // where the pin strips start
 usb_z = pcb_z + esp_t + usb_up;
 amp_rim = 1.2;
-amp_x = 84;                                     // the amplifier lives front right, clear of the antenna
-amp_y = 8;
+amp_x = 84;                                     // the amplifiers live on the right, clear of the antenna
+amp_ys = headphones ? [8, 36] : [8];            // speaker amplifier at the front; headphone amplifier behind it,
+                                                // ending 6 mm short of the sockets' bodies
 amp_z = amp_pin_drop + 0.9;                     // top of the amplifier's seat
 spk_x = 47;
 spk_y = (in_d - spk_l) / 2;
@@ -125,8 +126,8 @@ module base() {
         for (r = [-1, 1]) translate([r * 1.2 - 0.6, hdr_y0, 0]) cube([1.2, hdr_l, saddle_z]);
         for (y = [hdr_y0 - 0.2 - 1.6, hdr_y0 + hdr_l + 0.2]) translate([-1.8, y, 0]) cube([3.6, 1.6, saddle_z + 0.8]);
       }
-      // the amplifier's seat: a block with a channel for its pin row and a rim around the board
-      difference() {
+      // the amplifiers' seats: a block with a channel for the pin row and a rim around the board
+      for (amp_y = amp_ys) difference() {
         translate([amp_x, amp_y, 0]) cube([amp_w + 2 * (amp_rim + fit), amp_d + 2 * (amp_rim + fit), amp_z + 1.6]);
         translate([amp_x + amp_rim, amp_y + amp_rim, amp_z]) cube([amp_w + 2 * fit, amp_d + 2 * fit, 2]);
         translate([amp_x + amp_rim + fit + (amp_w - amp_pins * 2.54) / 2 - 0.4, amp_y + amp_rim + fit + 0.2, 0.6]) cube([amp_pins * 2.54 + 0.8, 3.2, amp_z]);
@@ -217,9 +218,11 @@ module parts() {
     color("#d4af37") for (s = [-1, 1], i = [0 : 21]) translate([s * row_pitch / 2 - 0.32, hdr_y0 + 0.95 + i * 2.54, -pin_drop]) cube([0.64, 0.64, pin_drop]);
     color("#f6f6f6") translate([led_off - 1.7, esp_y1 - led_from_usb - 1.7, esp_t]) cube([3.4, 3.4, 1]);
   }
-  // amplifier
+  // amplifiers
+  for (amp_y = amp_ys) {
   color("#0b4f9e") translate([amp_x + amp_rim + fit, amp_y + amp_rim + fit, amp_z]) cube([amp_w, amp_d, 1.6]);
   color("#2f8f3a") translate([amp_x + amp_rim + 5, amp_y + amp_rim + 9, amp_z + 1.6]) cube([8, 7, 8]);
+  }
   // speaker
   color("#1b1b1b") translate([spk_x, spk_y, spk_lift]) cube([spk_w, spk_l, spk_h]);
   // inserts and screws
