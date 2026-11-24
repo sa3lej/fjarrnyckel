@@ -11,6 +11,8 @@ Icom radio controlled with [wfview](https://wfview.org/). Voice and digital
 modes work well over such a link. Morse does not, because the timing of your
 hand is lost on the way. Fjärrnyckel carries the timing.
 
+<p align="center"><img src="docs/build/fjarrnyckel-photo.jpg" width="640" alt="The Fjärrnyckel box, seen from the back: PHONES and KEY sockets and the USB opening"></p>
+
 ## How it works
 
 - **The box** sits on your desk. It is an ESP32-S3 with a key jack and a small
