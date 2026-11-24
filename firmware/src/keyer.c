@@ -5,6 +5,7 @@
 #include "driver/gpio.h"
 #include "esp_timer.h"
 #include "fn.h"
+#include "iambic.h"
 
 volatile bool key_down;
 
@@ -24,38 +25,16 @@ static bool settle(contact_t *c, bool raw) {
 
 static void keyer_task(void *arg) {
   contact_t tip = {0}, ring = {0};
-  enum { IDLE, MARK, GAP } phase = IDLE;
-  bool sending_dah = false, dit_wanted = false, dah_wanted = false, dit_was = false, dah_was = false;
-  int64_t until = 0;
+  iambic_t iambic = {0};
   bool armed = false;      // a key that is already down when the box starts counts for nothing until it has been up
   TickType_t tick = xTaskGetTickCount();
   for (;;) {
     vTaskDelayUntil(&tick, 1);
     bool t = settle(&tip, gpio_get_level(PIN_TIP) == 0), r = settle(&ring, gpio_get_level(PIN_RING) == 0);
     if (!armed) { if (t || r) continue; armed = true; }
-    if (settings.key_type == 0) { set_key(t); phase = IDLE; continue; }
-
+    if (settings.key_type == 0) { set_key(t); iambic = (iambic_t){0}; continue; }
     bool dit = settings.swap ? r : t, dah = settings.swap ? t : r;
-    int64_t now = esp_timer_get_time(), unit = 1200000 / (settings.wpm ? settings.wpm : 20);
-    // The opposite paddle is remembered while an element goes out, and sent next.
-    // Mode B remembers it if it is held at any moment of the element, so letting go of a squeeze still adds one
-    // more element. Mode A only remembers a fresh press, so letting go of a squeeze ends with the current element.
-    if (phase != IDLE) {
-      if ((settings.iambic_b ? dit : dit && !dit_was) && sending_dah) dit_wanted = true;
-      if ((settings.iambic_b ? dah : dah && !dah_was) && !sending_dah) dah_wanted = true;
-    }
-    dit_was = dit; dah_was = dah;
-    if (phase == MARK && now >= until) { set_key(false); phase = GAP; until = now + unit; }
-    if (phase == GAP && now >= until) phase = IDLE;
-    if (phase == IDLE) {
-      bool next_dah;
-      if (dit_wanted || dah_wanted) next_dah = dah_wanted;              // the remembered, opposite element
-      else if (dit && dah) next_dah = !sending_dah;                     // squeezed: alternate
-      else if (dit || dah) next_dah = dah;
-      else continue;
-      dit_wanted = dah_wanted = false;
-      sending_dah = next_dah; set_key(true); phase = MARK; until = now + unit * (next_dah ? 3 : 1);
-    }
+    set_key(iambic_step(&iambic, dit, dah, esp_timer_get_time(), 1200000 / (settings.wpm ? settings.wpm : 20), settings.iambic_b));
   }
 }
 
