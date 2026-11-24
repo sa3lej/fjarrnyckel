@@ -16,7 +16,8 @@ wfview** (not as root).
 - A Raspberry Pi with Raspberry Pi OS or Debian. Developed on a Pi 4 with
   Debian 13 and Python 3.13. Linux 5.6 or later and Python 3.9 or later are
   required.
-- An Icom radio on USB. Developed with the IC-7300 (CI-V address `94`).
+- An Icom radio on USB that wfview controls. Tested with the IC-7300; see
+  [Radios](#radios) for the others.
 - wfview running on the Pi, connected to the radio, with **Enable RigCtld**
   switched on (Settings → External Control, port `4533`).
 - A way for the box to reach the Pi: the same network, Tailscale, or a public
@@ -89,6 +90,35 @@ with `journalctl --user -u fjarrnyckel-receiver -f`.
 the receiver sets the radio's *USB Keying (CW)* menu to DTR and accepts keying.
 When you leave CW, or the receiver stops, it sets the menu back to OFF. In any
 other mode the receiver refuses to key.
+
+## Radios
+
+The receiver asks wfview which radio it is connected to, and its CI-V address.
+It keys by switching DTR on the radio's USB serial port, the one wfview has open.
+
+| Radio | *USB Keying (CW)* | Tested |
+|---|---|---|
+| IC-7300 | switched by the receiver (menu `1A 05 00 79`) | yes |
+| IC-7300MK2 | switched by the receiver (`00 97`) | no |
+| IC-705 | switched by the receiver (`01 26`) | no |
+| IC-9700 | switched by the receiver (`01 21`) | no |
+| IC-7610 | switched by the receiver (`00 96`) | no |
+| IC-905 | switched by the receiver (`01 37`) | no |
+| other Icoms with a USB port | set it to **DTR** on the radio yourself | no |
+
+The menu numbers are from Icom's CI-V reference guide for each radio. The radios
+from the IC-7300MK2 down have two virtual serial ports on their USB connection,
+(A) and (B); the receiver picks *USB (A) DTR* or *USB (B) DTR* to match the port
+wfview uses. If it cannot tell which port that is, it leaves the menu alone and
+says so in its log; start it with `--usb-port A` or `--usb-port B`. If the radio's
+CI-V address is not its default, add `--civ-address` with the address in hex.
+
+On a radio whose menu the receiver does not switch, it still refuses to key
+outside CW mode; set *USB Keying (CW)* to DTR once and leave it there.
+
+Radios without a USB port (IC-706, IC-718, IC-746, IC-756) and the Kenwood and
+Yaesu radios wfview supports are not covered: they key differently. If you try a
+radio on this list, please tell us how it went.
 
 The receiver also lets go of the key by itself when:
 

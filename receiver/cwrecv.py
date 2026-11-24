@@ -30,6 +30,7 @@ import argparse
 import collections
 import json
 import os
+import re
 import select
 import signal
 import socket
@@ -385,15 +386,37 @@ class WfviewKey:
     the radio's "USB Keying (CW)" menu to DTR over CI-V, and back to OFF when
     the radio leaves CW or the receiver stops. DTR is forced low before the
     menu is enabled, so enabling it never keys the radio by itself.
+
+    The radio is identified from wfview's rigctld (dump_caps: model name and
+    CI-V address). The menu is only switched on radios whose menu number is
+    in Icom's own CI-V reference guide (USB_KEYING_MENUS). On any other radio
+    the menu is left alone: set "USB Keying (CW)" to DTR on the radio, and the
+    receiver keys DTR in CW as usual.
     """
+
+    # "USB Keying (CW)" in CI-V command 1A 05, from Icom's CI-V reference guides.
+    # "single": one USB serial port, 01 = DTR. "ab": two virtual ports, 01 = USB (A)
+    # DTR, 03 = USB (B) DTR, so the value depends on the port wfview holds.
+    USB_KEYING_MENUS = {
+        "IC-7300": (b"\x00\x79", "single"),
+        "IC-7300MK2": (b"\x00\x97", "ab"),
+        "IC-705": (b"\x01\x26", "ab"),
+        "IC-9700": (b"\x01\x21", "ab"),
+        "IC-7610": (b"\x00\x96", "ab"),
+        "IC-905": (b"\x01\x37", "ab"),
+    }
 
     RIG_MODES = {"LSB": 0x00, "USB": 0x01, "AM": 0x02, "CW": 0x03, "RTTY": 0x04, "FM": 0x05,
                  "CWR": 0x07, "RTTYR": 0x08, "PKTLSB": 0x00, "PKTUSB": 0x01, "PKTFM": 0x05}
 
-    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=0x94, controller=0xE0):
+    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=None, controller=0xE0, usb_port=None):
         import threading
-        self.radio, self.controller = radio, controller
-        self.usb_keying = None  # last value written to menu 0079; None = untouched
+        self.radio_given = radio      # --civ-address; None = take it from wfview
+        self.radio, self.controller = radio or 0x94, controller
+        self.usb_port_given = usb_port  # "A" or "B" to override the port detection
+        self.model = None             # model name from wfview, e.g. "IC-705"
+        self.keying = None            # (menu, on value) once known; None = leave the menu alone
+        self.usb_keying = None  # last value written to the menu; None = untouched
         self.device = os.path.realpath(port)
         self.rigctld = rigctld
         self.process = process
@@ -446,7 +469,7 @@ class WfviewKey:
         if self.fd is not None:
             try:
                 self._dtr(self.fd, False)
-                if self.usb_keying:
+                if self.usb_keying and self.keying:
                     self._write_usb_keying(False)
             except OSError:
                 pass
@@ -454,10 +477,47 @@ class WfviewKey:
         self.fd = self.pid = None
         self.usb_keying = None
 
+    def _usb_port(self):
+        """'A' or 'B': which of the radio's two virtual serial ports this is. The
+        first one (USB interface 0) is A. None when it cannot be told."""
+        if self.usb_port_given:
+            return self.usb_port_given
+        try:
+            with open(f"/sys/class/tty/{os.path.basename(self.device)}/device/bInterfaceNumber") as f:
+                return "A" if int(f.read().strip(), 16) < 2 else "B"
+        except (OSError, ValueError):
+            return None
+
+    def _identify(self, caps):
+        """Model and CI-V address from wfview's dump_caps; picks the keying menu."""
+        number = re.search(r"Caps dump for model:\s*(\d+)", caps)
+        name = re.search(r"Model Name:\s*(\S+)", caps)
+        self.model = name.group(1) if name else None
+        if self.radio_given is None and number and 0 < int(number.group(1)) < 0xE0:
+            self.radio = int(number.group(1))   # wfview numbers Icom models by their CI-V address
+        entry = self.USB_KEYING_MENUS.get(self.model)
+        keying = None
+        if entry:
+            menu, kind = entry
+            if kind == "single":
+                keying = (menu, 0x01)
+            else:
+                port = self._usb_port()
+                keying = (menu, 0x01 if port == "A" else 0x03) if port else None
+        if keying != self.keying:
+            self.keying = keying
+            if keying:
+                print(f"{self.model} at CI-V address {self.radio:02X}h: USB Keying (CW) follows CW mode", flush=True)
+            else:
+                print(f"{self.model or 'unknown radio'}: set USB Keying (CW) to DTR on the radio yourself;"
+                      " the receiver keys DTR in CW but leaves that menu alone", flush=True)
+
     def _write_usb_keying(self, on):
-        """CI-V 1A 05 00 79: USB Keying (CW), 00 = OFF, 01 = DTR. One write()
-        per frame, so it cannot interleave with wfview's own frames."""
-        frame = bytes([0xFE, 0xFE, self.radio, self.controller, 0x1A, 0x05, 0x00, 0x79, 0x01 if on else 0x00, 0xFD])
+        """CI-V 1A 05 <menu>: USB Keying (CW), 00 = OFF, or the DTR value for this
+        radio and port. One write() per frame, so it cannot interleave with
+        wfview's own frames."""
+        menu, value = self.keying
+        frame = bytes([0xFE, 0xFE, self.radio, self.controller, 0x1A, 0x05]) + menu + bytes([value if on else 0x00, 0xFD])
         if on:
             self._dtr(self.fd, False)
         os.write(self.fd, frame)
@@ -466,6 +526,8 @@ class WfviewKey:
     def _follow_mode(self):
         """Enable DTR keying while the radio is in CW, disable it otherwise."""
         want = self.mode in MODES_CW
+        if self.keying is None:
+            return  # a radio whose menu we do not know: the operator sets it
         if self.fd is not None and want != bool(self.usb_keying) and not (self.usb_keying is None and not want):
             self._write_usb_keying(want)
 
@@ -484,6 +546,18 @@ class WfviewKey:
                 self._release()
 
     # -- rig state ----------------------------------------------------------
+    def _dump_caps(self, sock):
+        sock.sendall(b"\\dump_caps\n")
+        data = b""
+        while b"RPRT" not in data:
+            chunk = sock.recv(1024)
+            if not chunk:
+                raise OSError("rigctld closed")
+            data += chunk
+        while not data.endswith(b"\n"):
+            data += sock.recv(64)
+        return data.decode(errors="replace")
+
     def _rigctl(self, sock, command):
         sock.sendall(command + b"\n")
         data = b""
@@ -505,6 +579,7 @@ class WfviewKey:
                         self._acquire()
                 if sock is None:
                     sock = socket.create_connection(self.rigctld, timeout=2)
+                    self._identify(self._dump_caps(sock))   # wfview may have been switched to another radio
                 mode = self._rigctl(sock, b"m")[0].strip()
                 freq = self._rigctl(sock, b"f")[0].strip()
                 self.mode = self.RIG_MODES.get(mode, 0xFF)
@@ -521,7 +596,10 @@ class WfviewKey:
             sock.close()
 
     def cw_mode(self):
-        return (self.fd is not None and self.usb_keying is True and self.mode in MODES_CW
+        # With a known menu the radio is only ready once the menu is set to DTR;
+        # on other radios the operator has set it, so CW mode is enough.
+        menu_ready = self.usb_keying is True if self.keying else True
+        return (self.fd is not None and menu_ready and self.mode in MODES_CW
                 and time.monotonic() - self.seen < 3.0)
 
     def mode_and_freq(self):
@@ -547,6 +625,8 @@ def main():
     parser.add_argument("--serial", help="radio serial port; keys DTR and requires the rig to be in CW")
     parser.add_argument("--wfview", nargs="?", const="127.0.0.1:4533", metavar="HOST:PORT",
                         help="share the --serial port with a running wfview: key DTR on wfview's own descriptor, read the rig over its rigctld")
+    parser.add_argument("--civ-address", type=lambda v: int(v, 16), help="the radio's CI-V address in hex, if not the one wfview reports")
+    parser.add_argument("--usb-port", choices=["A", "B"], help="which of the radio's two USB serial ports wfview uses, if it cannot be detected")
     parser.add_argument("--delay-ms", type=float, default=25.0, help="playout delay when the client asks for none")
     parser.add_argument("--link-timeout-ms", type=float, default=300.0)
     parser.add_argument("--max-key-down-ms", type=float, default=5000.0)
@@ -557,7 +637,7 @@ def main():
         parser.error("--wfview needs --serial to identify the radio port")
     if args.wfview:
         host, _, rport = args.wfview.rpartition(":")
-        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)))
+        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)), radio=args.civ_address, usb_port=args.usb_port)
     else:
         out = SerialKey(args.serial) if args.serial else NullKey()
     core = Receiver(proto.load_key(args.key), out, delay_ms=args.delay_ms, link_timeout_ms=args.link_timeout_ms,
