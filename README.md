@@ -25,6 +25,14 @@ hand is lost on the way. Fjärrnyckel carries the timing.
 - **The link** between them is signed with a shared key, so only your box can
   key your radio, and the receiver lets go of the key if the link is lost.
 
+### The box's page
+
+Everything is set up from the box's own web page, on a phone or a computer: Wi-Fi, Tailscale (built into
+the box, no computer needed on your side), the receiver, the keyer and the sidetone. It also installs
+updates and makes backups. English and Swedish.
+
+<p align="center"><img src="docs/build/interface.png" width="900" alt="The box's page: overview with link status, the Tailscale connection with relay choice, and the key settings"></p>
+
 ## Status
 
 Work in progress. Honest state of each part:
