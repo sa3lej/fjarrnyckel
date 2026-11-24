@@ -39,9 +39,13 @@ amp_w = 19.5;        // amplifier board, side with the pin row
 amp_d = 18.0;        // amplifier board, other side
 amp_pins = 7;        // pins in its header
 amp_pin_drop = 8.6;  // underside of the amplifier board to its pin tips
-spk_w = 31.0;        // speaker box: width
-spk_l = 69.0;        //              length (measured: 69 x 31)
-spk_h = 17.0;        //              height
+// speaker: CQRobot 3 W 4 ohm enclosed speaker (CQRobot data: 70 x 31 x 16 mm, screw holes 63 x 24 mm apart;
+// measured 69 x 31 x 16)
+spk_w = 31.0;        // front plate: width
+spk_l = 70.0;        //              length
+spk_h = 16.0;        // front of the plate to the back of the box
+spk_holes = [24, 63];   // centre distances of the four corner screw holes (across, along)
+spk_pin = 2.2;       // the lid's locating pins that drop into those holes
 jack_hole = 6.3;     // thread of the 3.5 mm panel sockets
 headphones = true;   // second socket hole for headphones
 
@@ -137,7 +141,7 @@ module base() {
       for (y = [spk_y + 10, spk_y + spk_l - 12]) translate([spk_x, y, 0]) cube([spk_w, 2, spk_lift]);
       for (x = [spk_x - fit - 1.6, spk_x + spk_w + fit], y = [spk_y + 4, spk_y + spk_l - 14])
         translate([x, y, 0]) cube([1.6, 10, spk_lift + 6]);
-      for (y = [spk_y - fit - 1.6, spk_y + spk_l + fit]) translate([spk_x + spk_w / 2 - 6, y, 0]) cube([12, 1.6, spk_lift + 6]);
+      // no guides at the ends: the cable leaves one end, and the lid's pins in the screw holes hold it lengthwise
     }
     // rear wall: one opening for both USB sockets, big enough for the grips of two plugs side by side
     translate([esp_cx, in_d - 1, usb_z]) rotate([-90, 0, 0]) slot(usb_span, usb_plug_h, wall + 2);
@@ -178,10 +182,14 @@ module lid() {
         translate([led_x, led_y, well_z]) slot(led_slot[0] + 3.6, 7.4, 0.01);
         translate([led_x, led_y, in_h]) slot(led_slot[0] + 1.2, led_slot[1] + 1.4, 0.3);
       }
-      // frame that meets the speaker's face
+      // frame that meets the speaker's face, with a pad in each corner and a pin into each screw hole
       difference() {
         translate([spk_x - 1.6, spk_y - 1.6, in_h - 2.2 + fit]) cube([spk_w + 3.2, spk_l + 3.2, 2.5 - fit]);
         translate([spk_x + 1.5, spk_y + 1.5, in_h - 3]) cube([spk_w - 3, spk_l - 3, 4]);
+      }
+      for (sx = [-1, 1], sy = [-1, 1]) translate([spk_x + spk_w / 2 + sx * spk_holes[0] / 2, spk_y + spk_l / 2 + sy * spk_holes[1] / 2, 0]) {
+        translate([-3, -3, in_h - 2.2 + fit]) cube([6, 6, 2.5 - fit]);
+        translate([0, 0, in_h - 2.2 + fit - 2]) cylinder(d = spk_pin, h = 2.2, $fn = 20);
       }
     }
     for (p = posts) translate([p[0], p[1], -1]) {
