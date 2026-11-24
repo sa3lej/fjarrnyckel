@@ -11,7 +11,15 @@
 // The light sits on GPIO48 on most ESP32-S3-DevKitC-1 boards and on GPIO38 on version 1.1; both are driven.
 static led_strip_handle_t leds[2];
 
+// The colours below are written for brightness 10; the setting scales them all, up to ten times as bright.
+static int scaled(int v) {
+  int level = settings.led_level >= 1 && settings.led_level <= 100 ? settings.led_level : 10;
+  v = v * level / 10;
+  return v > 255 ? 255 : v;
+}
+
 void led_show(int r, int g, int b) {
+  r = scaled(r); g = scaled(g); b = scaled(b);
   for (int i = 0; i < 2; i++) if (leds[i]) { led_strip_set_pixel(leds[i], 0, r, g, b); led_strip_refresh(leds[i]); }
 }
 

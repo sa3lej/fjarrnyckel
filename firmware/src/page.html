@@ -222,6 +222,8 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 <div class="card">
  <label data-t="ledL"></label>
  <div class="seg" id="led"><button type="button" data-v="1" data-t="on"></button><button type="button" data-v="0" data-t="off"></button></div>
+ <label for="bright" style="margin-top:.9rem"><span data-t="brightL"></span><b><span id="brightV"></span></b></label>
+ <input id="bright" type="range" min="1" max="100">
  <p class="hint" data-t="ledHint"></p>
  <label data-t="tonesL" style="margin-top:1rem"></label>
  <div class="seg" id="tones"><button type="button" data-v="1" data-t="on"></button><button type="button" data-v="0" data-t="off"></button></div>
@@ -286,7 +288,7 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  rawL:"What the site gets",rawKeyed:"Finished keying",rawPaddles:"The two paddles",rawHintK:"The box's own keyer and sidetone, as on the air. Set the site to straight key.",rawHintP:"Left Ctrl is dit, right Ctrl is dah. The site makes the elements and the tone; the box is silent.",
  trainNote:"Training: the key does not go to the radio.",
  t_home:"Overview",t_key:"Key",t_net:"Connection",t_box:"Box",quick:"Quick settings",hTrain:"Training: the key goes to the computer",hNoBox:"No contact with the box",
- signals:"Signals",on:"On",off:"Off",ledL:"Status light",ledHint:"Green: ready. Amber: the radio is not ready. Red: no Wi-Fi. Blue, blinking: the setup network is up.",tonesL:"Status tones",tonesHint:"The letter R in Morse when keying comes on, two low tones when it goes off.",
+ signals:"Signals",on:"On",off:"Off",ledL:"Status light",brightL:"Brightness",ledHint:"Green: ready. Amber: the radio is not ready. Red: no Wi-Fi. Blue, blinking: the setup network is up.",tonesL:"Status tones",tonesHint:"The letter R in Morse when keying comes on, two low tones when it goes off.",
  signedY:"signed",signedN:"not signed",svcOn:"Service mode until the box restarts: firmware that is not signed can be installed.",
  protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it: hold the key down while plugging the box in, and let go after the first beep (five seconds). That removes the password.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
  lockT:"This box is locked",lockD:"Enter the page's password.",unlock:"Unlock",lockWrong:"That password was not right.",
@@ -320,7 +322,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  rawL:"Vad sidan får",rawKeyed:"Färdig nyckling",rawPaddles:"De två paddlarna",rawHintK:"Lådans egen nycklare och medhörning, som i luften. Ställ sidan på rak nyckel.",rawHintP:"Vänster Ctrl är kort, höger Ctrl är lång. Sidan gör tecknen och tonen; lådan är tyst.",
  trainNote:"Träning: nyckeln går inte till radion.",
  t_home:"Översikt",t_key:"Nyckel",t_net:"Anslutning",t_box:"Lådan",quick:"Snabbval",hTrain:"Träning: nyckeln går till datorn",hNoBox:"Ingen kontakt med lådan",
- signals:"Signaler",on:"På",off:"Av",ledL:"Statuslampa",ledHint:"Grön: klar. Gul: radion är inte redo. Röd: inget Wi-Fi. Blå, blinkande: inställningsnätverket är igång.",tonesL:"Statustoner",tonesHint:"Bokstaven R i morse när nycklingen slås på, två låga toner när den slås av.",
+ signals:"Signaler",on:"På",off:"Av",ledL:"Statuslampa",brightL:"Ljusstyrka",ledHint:"Grön: klar. Gul: radion är inte redo. Röd: inget Wi-Fi. Blå, blinkande: inställningsnätverket är igång.",tonesL:"Statustoner",tonesHint:"Bokstaven R i morse när nycklingen slås på, två låga toner när den slås av.",
  signedY:"signerad",signedN:"inte signerad",svcOn:"Serviceläge tills lådan startar om: programvara som inte är signerad kan installeras.",
  protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det: håll nyckeln nedtryckt när lådan kopplas in och släpp efter första pipet (fem sekunder). Då tas lösenordet bort.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
  lockT:"Lådan är låst",lockD:"Ange sidans lösenord.",unlock:"Lås upp",lockWrong:"Lösenordet stämde inte.",
@@ -407,20 +409,20 @@ function paintWifiTop(){const lamp=$("lamp");if(!S){lamp.className="lamp bad";$(
  else if(S.wifi=="connecting"){lamp.className="lamp busy";$("state").textContent=f("sCon");$("detail").textContent=""}
  else if(S.wifi=="failed"){lamp.className="lamp bad";$("state").textContent=f("sBad");$("detail").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
  else{lamp.className="lamp";$("state").textContent=t("sNo");$("detail").textContent=t("dNo")}}
-function show(){for(const k of["wpm","tone","volume","hp","radio"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%");
+function show(){for(const k of["wpm","tone","volume","hp","radio","bright"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%");
   const h=$("h_"+k);if(h){h.value=e.value;$("h_"+k+"V").textContent=e.value;h.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}}
  $("h_target").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur.target));$("hWpmBox").hidden=cur.keyType!=1;
  for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
  $("paddleBox").hidden=cur.keyType!=1;paintUsb();$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume","hp","radio"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show();if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume","hp","radio","bright"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show();if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 // A slider sends its value while it is dragged. Only one request per slider is on its way at a time and the newest
 // value always goes last; otherwise two could overtake each other and the setting would jump back and forth.
 const live={};
 function slide(k,save){const q=live[k]||(live[k]={busy:false,next:null});const d={[k]:$(k).value};if(save)d.save=1;
  if(q.busy){q.next=q.next&&q.next.save?{...d,save:1}:d;return}
  q.busy=true;post("/api/settings",d).catch(()=>{}).finally(()=>{q.busy=false;if(q.next){const n=q.next;q.next=null;$(k).value=n[k];slide(k,n.save)}})}
-for(const k of["wpm","tone","volume","hp","radio"]){$(k).oninput=()=>{show();slide(k,false)};$(k).onchange=()=>slide(k,true)}
+for(const k of["wpm","tone","volume","hp","radio","bright"]){$(k).oninput=()=>{show();slide(k,false)};$(k).onchange=()=>slide(k,true)}
 for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};

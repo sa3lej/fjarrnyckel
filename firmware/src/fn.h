@@ -41,6 +41,7 @@ typedef struct {
   uint16_t ts_region;   // Tailscale relay region the box calls home; 0 = follow the receiver
   uint16_t ts_region_auto;  // the receiver's region as last learned, used when ts_region is 0
   uint8_t radio_volume; // sound from the computer (the radio, through wfview) in the headphones, 0-100
+  uint8_t led_level;    // status light brightness 1-100, 10 = the original level; 0 (older copies) = 10
 } settings_t;
 extern settings_t settings;
 void settings_load(void);

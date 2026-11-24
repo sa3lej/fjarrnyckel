@@ -13,7 +13,7 @@
 
 settings_t settings;
 
-static const settings_t defaults = { .key_type = 0, .swap = 0, .wpm = 20, .tone_hz = 650, .volume = 30, .link_port = 7373, .iambic_b = 1, .hp_volume = 15, .radio_volume = 60 };
+static const settings_t defaults = { .key_type = 0, .swap = 0, .wpm = 20, .tone_hz = 650, .volume = 30, .link_port = 7373, .iambic_b = 1, .hp_volume = 15, .radio_volume = 60, .led_level = 10 };
 
 // Text fields always end inside their arrays, whatever was stored.
 static void terminate(settings_t *s) {
