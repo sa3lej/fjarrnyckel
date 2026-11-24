@@ -204,4 +204,6 @@ has not been for three seconds. The tones wait until the key is up, and can be s
 
 ![The back: KEY, PHONES and USB](build/rear.jpg)
 
+If Fjärrnyckel is useful to you, [buy me a coffee](https://buymeacoffee.com/lejo).
+
 73 and have fun!

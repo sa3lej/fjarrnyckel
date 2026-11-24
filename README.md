@@ -145,6 +145,8 @@ gcc -Wall -Ifirmware/src -o /tmp/iambic_test tests/host/iambic_test.c firmware/s
 TFPSA=<built TF-PSA-Crypto checkout> tests/host/run_backup_test.sh
 ```
 
+If Fjärrnyckel is useful to you, [buy me a coffee](https://buymeacoffee.com/lejo).
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE). The designs in `enclosure/` and `vfo/` are under the same licence.
