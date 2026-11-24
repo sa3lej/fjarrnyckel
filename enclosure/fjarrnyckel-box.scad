@@ -39,10 +39,13 @@ can_up = 3.3;        // top of the metal can of the radio module above the top o
 can_from_end = 14;   // centre of that can from the antenna end of the board
 led_from_usb = 18.4; // status light: distance from the USB edge of the board
 led_off = 0.5;       // status light: sideways offset from the board's centre line
-amp_w = 19.5;        // amplifier board, side with the pin row
-amp_d = 18.0;        // amplifier board, other side
-amp_pins = 7;        // pins in its header
-amp_pin_drop = 8.6;  // underside of the amplifier board to its pin tips
+// amplifier boards: MAX98357A breakouts (Adafruit layout, 17.8 x 19.3 mm). They stand on edge with the
+// pin row at the bottom, Dupont plugs on the pins pointing sideways, speaker wires soldered at the top edge.
+amp_w = 17.8;        // amplifier board, side with the pin row
+amp_h = 19.3;        //                  other side (stands upright)
+amp_t = 1.6;         // board thickness
+amp_plug = 14.5;     // Dupont plug body plus the start of its wires, out from the board's face
+amp_ledge = 2.0;     // the board's lower edge above the floor, so the plugs clear it
 // speaker: CQRobot 3 W 4 ohm enclosed speaker (CQRobot data: 70 x 31 x 16 mm, screw holes 63 x 24 mm apart;
 // measured 69 x 31 x 16)
 spk_w = 31.0;        // front plate: width
@@ -84,11 +87,10 @@ esp_y0 = esp_y1 - esp_l;                        // antenna edge
 saddle_z = pcb_z - hdr_h;                       // the pin strips rest here
 hdr_y0 = esp_y0 + (esp_l - hdr_l) / 2;          // where the pin strips start
 usb_z = pcb_z + esp_t + usb_up;
-amp_rim = 1.2;
-amp_x = 84;                                     // the amplifiers live on the right, clear of the antenna
-amp_ys = headphones ? [8, 36] : [8];            // speaker amplifier at the front; headphone amplifier behind it,
-                                                // ending 6 mm short of the sockets' bodies
-amp_z = amp_pin_drop + 0.9;                     // top of the amplifier's seat
+amp_x = 102;                                    // face of the boards (plug side); the plugs point left, towards
+                                                // the speaker, leaving room to bend the wires down under it
+amp_ys = headphones ? [8, 37] : [8];            // speaker amplifier at the front; headphone amplifier behind it,
+                                                // clear of the sockets' bodies
 spk_x = 47;
 spk_y = (in_d - spk_l) / 2;
 spk_lift = in_h - spk_h - 2.2;                  // speaker stands on ribs so its face meets the lid
@@ -135,11 +137,11 @@ module base() {
         for (y = [hdr_y0 - 0.2 - 1.6, hdr_y0 + hdr_l + 0.2]) translate([-1.8, y, 0]) cube([3.6, 1.6, saddle_z + 0.8]);
       }
       // the amplifiers' seats: a block with a channel for the pin row and a rim around the board
-      for (amp_y = amp_ys) difference() {
-        translate([amp_x, amp_y, 0]) cube([amp_w + 2 * (amp_rim + fit), amp_d + 2 * (amp_rim + fit), amp_z + 1.6]);
-        translate([amp_x + amp_rim, amp_y + amp_rim, amp_z]) cube([amp_w + 2 * fit, amp_d + 2 * fit, 2]);
-        translate([amp_x + amp_rim + fit + (amp_w - amp_pins * 2.54) / 2 - 0.4, amp_y + amp_rim + fit + 0.2, 0.6]) cube([amp_pins * 2.54 + 0.8, 3.2, amp_z]);
-        translate([amp_x - 1, amp_y + amp_rim + fit + 6, amp_z]) cube([amp_rim + 2, amp_d - 9, 2]);   // wires leave towards the speaker and the board
+      // the amplifiers' stands: two posts per board with a groove for each side edge; the board slides in
+      // from above and rests on the bottom of the grooves
+      for (amp_y = amp_ys, side = [0, 1]) difference() {
+        translate([amp_x - 1.6, side ? amp_y + amp_w + fit - 1.3 : amp_y - fit - 2.2, 0]) cube([amp_t + 2 * fit + 3.2, 3.5, amp_ledge + 14]);
+        translate([amp_x - fit, (side ? amp_y + amp_w - 1.3 : amp_y - fit - 0.01), amp_ledge]) cube([amp_t + 2 * fit, 1.3 + fit + 0.01, 20]);
       }
       // the speaker's cradle: two ribs it stands on and four corner guides
       for (y = [spk_y + 10, spk_y + spk_l - 12]) translate([spk_x, y, 0]) cube([spk_w, 2, spk_lift]);
@@ -232,8 +234,8 @@ module parts() {
   }
   // amplifiers
   for (amp_y = amp_ys) {
-  color("#0b4f9e") translate([amp_x + amp_rim + fit, amp_y + amp_rim + fit, amp_z]) cube([amp_w, amp_d, 1.6]);
-  color("#2f8f3a") translate([amp_x + amp_rim + 5, amp_y + amp_rim + 9, amp_z + 1.6]) cube([8, 7, 8]);
+  color("#0b4f9e") translate([amp_x, amp_y, amp_ledge]) cube([amp_t, amp_w, amp_h]);
+  color("#111") for (i = [0 : 6]) translate([amp_x - amp_plug + 3, amp_y + amp_w / 2 + (i - 3) * 2.54 - 1.25, amp_ledge + 0.4]) cube([amp_plug - 3, 2.5, 2.5]);
   }
   // speaker
   color("#1b1b1b") translate([spk_x, spk_y, spk_lift]) cube([spk_w, spk_l, spk_h]);
@@ -243,7 +245,7 @@ module parts() {
     color("#9aa0a6") { translate([0, 0, -floor_t + head_h - 8 + 8]) translate([0, 0, 0]) cylinder(d = 2.9, h = 0.01); translate([0, 0, -floor_t + head_h]) cylinder(d = 2.9, h = 8); translate([0, 0, -floor_t - 0.3]) cylinder(d = 5.6, h = head_h + 0.3); }
   }
   // wires from the board to the amplifier and the sockets, through the tunnel under the speaker
-  color("#d9822b") for (i = [0 : 4]) translate([esp_cx + 14, in_d / 2 - 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = amp_x - esp_cx - 12, $fn = 12);
+  color("#d9822b") for (i = [0 : 4]) translate([esp_cx + 14, in_d / 2 - 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = amp_x - amp_plug - esp_cx - 12, $fn = 12);
   color("#3aa655") for (i = [0 : 2]) translate([esp_cx + 14, in_d / 2 + 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = jack_x[0] - esp_cx - 14, $fn = 12);
   // sockets
   for (x = jack_x) translate([x, in_d + wall + 2, jack_z]) rotate([90, 0, 0]) {
