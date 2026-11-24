@@ -57,9 +57,9 @@ in_d = 80;           // inside depth  (y)
 in_h = 26;           // inside height (z)
 lip = 3.2;           // depth of the lid's locating lip
 post_d = 8.4;        // screw posts under the lid
-inserts = true;      // brass heat-set inserts for M3 in the ends of the posts
-insert_d = 4.0;      // hole for the insert (M3 inserts are usually 4.6 mm outside, pressed into 4.0)
-insert_l = 6.0;      // depth of that hole (insert length + 0.5)
+inserts = true;      // brass heat-set inserts in the ends of the posts: ruthex RX-M3x5.7
+insert_d = 4.0;      // hole for the insert, as ruthex specifies (try 4.2 if your printer makes holes tight)
+insert_l = 6.7;      // depth of that hole: ruthex asks for the insert's 5.7 mm plus 1 mm
 screw_pilot = 2.6;   // M3 self-tapping, when inserts = false
 screw_clear = 3.4;
 head_d = 6.4;        // screw head recess in the floor
