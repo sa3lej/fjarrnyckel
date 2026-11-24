@@ -9,6 +9,9 @@
 #define PIN_BCLK  15   // MAX98357A
 #define PIN_LRC   16
 #define PIN_DIN   17
+#define PIN_HP_BCLK 12  // second MAX98357A, for headphones
+#define PIN_HP_LRC  13
+#define PIN_HP_DIN  14
 
 // ---- settings (kept in flash) ----
 typedef struct {
@@ -34,6 +37,7 @@ typedef struct {
   uint8_t tones_off;    // 1 = no tones when keying comes on or goes off
   uint8_t key_target;   // 0 = the key goes to the radio, 1 = to the computer on the USB port (training)
   uint8_t usb_raw;      // training with a paddle: 1 = send the two paddles as they are, the site does the keying
+  uint8_t hp_volume;    // sidetone volume in the headphones, 0-100
 } settings_t;
 extern settings_t settings;
 void settings_load(void);

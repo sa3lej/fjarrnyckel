@@ -80,7 +80,7 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[1900];
+  char ssid[80], host[140], login[2 * 256 + 8], body[1950];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
@@ -88,13 +88,13 @@ static esp_err_t get_status(httpd_req_t *req) {
   update_info_t u = update_info();
   snprintf(body, sizeof body,
     "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
-    "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"keyDown\":%s,"
+    "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"hp\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,"
     "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
-    settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, key_down ? "true" : "false",
+    settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, settings.hp_volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
     links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false",
@@ -232,6 +232,7 @@ static esp_err_t post_settings(httpd_req_t *req) {
   if (field(body, "led", v, sizeof v)) settings.led_off = !atoi(v);
   if (field(body, "tones", v, sizeof v)) settings.tones_off = !atoi(v);
   if (field(body, "volume", v, sizeof v)) settings.volume = clamp(atoi(v), 0, 100);
+  if (field(body, "hp", v, sizeof v)) settings.hp_volume = clamp(atoi(v), 0, 100);
   if (field(body, "save", v, sizeof v)) settings_save();     // sliders send live values; only the last one is stored
   if (field(body, "beep", v, sizeof v)) audio_beep(settings.tone_hz, 150);
   httpd_resp_set_type(req, "application/json");

@@ -10,7 +10,7 @@ settings_t settings;
 void settings_load(void) {
   esp_err_t err = nvs_flash_init();
   if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) { nvs_flash_erase(); nvs_flash_init(); }
-  settings = (settings_t){ .key_type = 0, .swap = 0, .wpm = 20, .tone_hz = 650, .volume = 30, .link_port = 7373, .iambic_b = 1 };
+  settings = (settings_t){ .key_type = 0, .swap = 0, .wpm = 20, .tone_hz = 650, .volume = 30, .link_port = 7373, .iambic_b = 1, .hp_volume = 15 };
   nvs_handle_t h;
   if (nvs_open("fn", NVS_READONLY, &h) != ESP_OK) return;
   // A copy stored by older firmware is shorter: it fills the start and the newer fields keep their defaults.
