@@ -41,21 +41,21 @@ Work in progress. Honest state of each part:
 
 ## Hardware for the box
 
-- ESP32-S3-DevKitC-1 (N16R8) on a screw-terminal expansion board
-- MAX98357A I2S amplifier board and a small 4 Ω speaker
-- 3.5 mm stereo jack for the key
+**[Build guide](docs/build-guide.md):** parts with links, pin map, wiring chart, printing and assembly,
+step by step.
+
+- ESP32-S3 N16R8 DevKitC-1, wide clone (YD-ESP32-S3 layout: pin rows 25.4 mm apart, IN-OUT pads)
+- two MAX98357A I2S amplifier boards, a CQRobot 3 W 4 Ω speaker, two PJ-392 3.5 mm sockets
+- the printed box in `enclosure/`
 
 | Signal | ESP32-S3 pin |
 |---|---|
-| Key jack tip (straight key, or one paddle) | GPIO4 |
-| Key jack ring (the other paddle) | GPIO5 |
+| Key jack tip (straight key, or the dit paddle) | GPIO4 (J1-4) |
+| Key jack ring (the dah paddle) | GPIO5 (J1-5) |
 | Key jack sleeve | GND |
-| Amplifier BCLK | GPIO15 |
-| Amplifier LRC | GPIO16 |
-| Amplifier DIN | GPIO17 |
-
-On some DevKitC-1 clones the 5V pin gives no USB power until the board's
-`IN-OUT` solder pads are bridged. Until then, power the amplifier from 3V3.
+| Speaker amplifier BCLK / LRC / DIN | GPIO15 / GPIO16 / GPIO17 |
+| Headphone amplifier BCLK / LRC / DIN | GPIO12 / GPIO13 / GPIO14 |
+| Both amplifiers Vin | 5Vin (J1-21), with the IN-OUT pads bridged |
 
 ## Getting started
 
