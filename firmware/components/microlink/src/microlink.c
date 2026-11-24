@@ -1009,6 +1009,32 @@ int microlink_get_peer_count(const microlink_t *ml) {
 }
 
 /* ---- Fjarrnyckel additions ---- */
+static const char *const identity_names[6] = { NVS_KEY_MACHINE_PRI, NVS_KEY_MACHINE_PUB, NVS_KEY_WG_PRI,
+                                               NVS_KEY_WG_PUB, NVS_KEY_DISCO_PRI, NVS_KEY_DISCO_PUB };
+
+esp_err_t microlink_identity_export(uint8_t keys[6][32]) {
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs);
+    if (err != ESP_OK) return ESP_ERR_NOT_FOUND;
+    for (int i = 0; i < 6 && err == ESP_OK; i++) {
+        size_t len = 32;
+        err = nvs_get_blob(nvs, identity_names[i], keys[i], &len);
+        if (err == ESP_OK && len != 32) err = ESP_ERR_INVALID_SIZE;
+    }
+    nvs_close(nvs);
+    return err == ESP_ERR_NVS_NOT_FOUND ? ESP_ERR_NOT_FOUND : err;
+}
+
+esp_err_t microlink_identity_import(const uint8_t keys[6][32]) {
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err != ESP_OK) return err;
+    for (int i = 0; i < 6 && err == ESP_OK; i++) err = nvs_set_blob(nvs, identity_names[i], keys[i], 32);
+    if (err == ESP_OK) err = nvs_commit(nvs);
+    nvs_close(nvs);
+    return err;
+}
+
 uint16_t ml_home_region_setting;
 
 void microlink_set_home_region(uint16_t region) { ml_home_region_setting = region; }

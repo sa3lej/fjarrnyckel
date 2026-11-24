@@ -4,9 +4,12 @@
 #include <string.h>
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_system.h"
+#include "esp_timer.h"
 #include "esp_random.h"
 #include "psa/crypto.h"
 #include "fn.h"
+#include "backup.h"
 
 // The page and the logo are linked into the firmware from src/page.html and src/logo.png.
 esp_err_t update_upload(httpd_req_t *req);
@@ -210,6 +213,67 @@ static esp_err_t post_login(httpd_req_t *req) {
 }
 
 // Sets, changes or (with an empty password) removes the page's password.
+// ---- backups ----
+static esp_err_t answer(httpd_req_t *req, const char *status, const char *json) {
+  httpd_resp_set_status(req, status);
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, json);
+}
+
+static void wipe(void *p, size_t n) { volatile char *v = p; while (n--) *v++ = 0; }
+
+// POST /api/backup with the passphrase: the sealed backup file comes back. Deriving the key takes a few seconds.
+static esp_err_t post_backup(httpd_req_t *req) {
+  static char body[1024], pass[1024];
+  static uint8_t file[sizeof(settings_t) + 512];
+  if (req->content_len >= sizeof body) return answer(req, "400 Bad Request", "{\"error\":\"passphrase too long\"}");
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  if (!field(body, "pass", pass, sizeof pass) || !pass[0]) return answer(req, "400 Bad Request", "{\"error\":\"no passphrase\"}");
+  int n = settings_backup(pass, file, sizeof file);
+  wipe(body, sizeof body); wipe(pass, sizeof pass);
+  if (n < 0) return answer(req, "500 Internal Server Error", "{\"error\":\"the backup could not be made\"}");
+  httpd_resp_set_type(req, "application/octet-stream");
+  httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"fjarrnyckel.fnb\"");
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+  esp_err_t r = httpd_resp_send(req, (const char *)file, n);
+  wipe(file, sizeof file);
+  return r;
+}
+
+static void restart_cb(void *arg) { esp_restart(); }
+
+static int unhex(char c) { return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1; }
+
+// POST /api/restore with the passphrase and the file in hex: the box takes everything from it and restarts.
+static esp_err_t post_restore(httpd_req_t *req) {
+  // The largest file format 1 can hold (a 16-bit settings length), in hex, with room for the passphrase field.
+  const size_t most = 2 * (BACKUP_OVERHEAD + 512 + 65535) + 1024;
+  if (req->content_len > most) return answer(req, "400 Bad Request", "{\"error\":\"not a backup\"}");
+  size_t size = req->content_len + 1;
+  char *body = malloc(size), *data = malloc(size), *pass = malloc(size);
+  int result = -3;
+  if (body && data && pass && read_body(req, body, size) >= 0 && field(body, "pass", pass, size) && field(body, "data", data, size)) {
+    size_t n = strlen(data) / 2; bool ok = strlen(data) % 2 == 0;
+    for (size_t i = 0; ok && i < n; i++) {
+      int hi = unhex(data[2 * i]), lo = unhex(data[2 * i + 1]);
+      if (hi < 0 || lo < 0) ok = false; else ((uint8_t *)data)[i] = (uint8_t)(hi << 4 | lo);
+    }
+    result = !ok ? -1 : !pass[0] ? -2 : settings_restore(pass, (const uint8_t *)data, n);
+  }
+  if (body) { wipe(body, size); free(body); }
+  if (data) { wipe(data, size); free(data); }
+  if (pass) { wipe(pass, size); free(pass); }
+  if (result == -1) return answer(req, "400 Bad Request", "{\"error\":\"not a backup\"}");
+  if (result == -2) return answer(req, "403 Forbidden", "{\"error\":\"wrong passphrase\"}");
+  if (result < 0) return answer(req, "500 Internal Server Error", "{\"error\":\"the backup could not be stored\"}");
+  ESP_LOGI("web", "a backup was restored: restarting");
+  answer(req, "200 OK", "{\"ok\":true}");
+  static esp_timer_handle_t timer;          // restart a moment later, so the answer reaches the browser first
+  const esp_timer_create_args_t args = { .callback = restart_cb, .name = "restart" };
+  esp_timer_create(&args, &timer); esp_timer_start_once(timer, 1500000);
+  return ESP_OK;
+}
+
 static esp_err_t post_password(httpd_req_t *req) {
   char body[260], pass[65] = "";
   if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
@@ -272,9 +336,11 @@ void web_start(void) {
     { .uri = "/api/tailscale", .method = HTTP_POST, .handler = post_tailscale },
     { .uri = "/api/update/online", .method = HTTP_POST, .handler = post_update_online },
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
+    { .uri = "/api/backup", .method = HTTP_POST, .handler = post_backup },
+    { .uri = "/api/restore", .method = HTTP_POST, .handler = post_restore },
   };
   new_session();
-  for (int i = 0; i < 11; i++) {
+  for (int i = 0; i < sizeof routes / sizeof routes[0]; i++) {
     httpd_uri_t r = routes[i];
     if (i >= 2) { r.user_ctx = (void *)r.handler; r.handler = guarded; }     // the page and the logo are always shown
     httpd_register_uri_handler(server, &r);

@@ -156,6 +156,13 @@ uint16_t microlink_peer_home_region(const microlink_t *ml, uint32_t vpn_ip);
 /** The DERP regions the control plane listed: fills ids[] and codes[] (e.g. "fra"), returns how many. */
 int microlink_get_derp_regions(const microlink_t *ml, uint16_t *ids, char codes[][8], int max);
 
+/** The device's Tailscale identity as stored in NVS: machine, WireGuard and disco keys, each private then public
+ *  (6 x 32 bytes). ESP_ERR_NOT_FOUND when the device has never started MicroLink. */
+esp_err_t microlink_identity_export(uint8_t keys[6][32]);
+
+/** Stores an identity taken from microlink_identity_export(); it is used from the next microlink_init(). */
+esp_err_t microlink_identity_import(const uint8_t keys[6][32]);
+
 /**
  * @brief Start connecting to Tailscale
  * @param ml Handle from microlink_init()

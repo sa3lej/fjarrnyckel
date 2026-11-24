@@ -115,6 +115,19 @@ own firmware, put your own public key there, or use service mode.
 - let go after the three beeps (15 seconds): all settings are erased and the box is as new;
 - a key that never comes up (stuck, or switched closed) changes nothing.
 
+## Backups
+
+Box → Backup downloads one file (`.fnb`) with everything the box knows: Wi-Fi, the receiver and its key,
+the Tailscale identity, the page password and every setting. Restoring it, also from the first-time setup
+page after a reset, brings the box back as it was without adding it to Tailscale again. (If the box's
+Tailscale key has expired in the meantime, it asks for a sign-in as usual.) Use one backup in one box at a
+time: two boxes with the same Tailscale identity push each other off the tailnet.
+
+The file is sealed with a passphrase you choose (PBKDF2-HMAC-SHA256, 100 000 rounds, then AES-256-GCM; see
+`firmware/src/backup.h`), so it can be kept anywhere, but a weak passphrase is the weak point. Without a page
+password anyone on the box's network can make a backup with their own passphrase, so set one if others
+share that network. `tools/backup.py show <file>` opens a backup on a computer and lists what is in it.
+
 A release is made by setting the version in `firmware/CMakeLists.txt` and pushing a tag `v<version>`.
 GitHub Actions builds the firmware and publishes `fjarrnyckel-update.bin` (for the box's page),
 `fjarrnyckel-usb.bin` (a full image for a new board, written at address 0) and `version.txt`.
@@ -123,6 +136,13 @@ GitHub Actions builds the firmware and publishes `fjarrnyckel-update.bin` (for t
 
 ```
 python3 -m unittest discover -s tests
+```
+
+Keyer logic and backup files are also tested in C on the computer:
+
+```
+gcc -Wall -Ifirmware/src -o /tmp/iambic_test tests/host/iambic_test.c firmware/src/iambic.c && /tmp/iambic_test
+TFPSA=<built TF-PSA-Crypto checkout> tests/host/run_backup_test.sh
 ```
 
 ## Licence

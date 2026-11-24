@@ -44,6 +44,11 @@ typedef struct {
 extern settings_t settings;
 void settings_load(void);
 void settings_save(void);
+// A sealed backup of every setting and the Tailscale identity: returns its length, or -1.
+int settings_backup(const char *pass, uint8_t *out, size_t size);
+// Takes everything from a backup: 0, -1 not a backup, -2 wrong passphrase or changed, -3 could not store it.
+// The box must restart afterwards for Wi-Fi, Tailscale and the link to use it.
+int settings_restore(const char *pass, const uint8_t *file, size_t len);
 
 // ---- sidetone ----
 void audio_start(void);

@@ -229,6 +229,18 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <button class="quiet" id="pwOff" type="button" style="margin-top:.6rem" hidden></button>
 </div>
 
+<h2 data-t="backup"></h2>
+<div class="card" id="bkCard">
+ <p class="hint" style="margin-top:0" data-t="bkWhy"></p>
+ <label for="bkPass" data-t="bkPassL"></label>
+ <div class="pw"><input id="bkPass" class="secret" type="text" name="fn-backup" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"><button id="showbk" type="button"></button></div>
+ <p class="hint" data-t="bkPassHint"></p>
+ <input id="bkFile" type="file" accept=".fnb" hidden>
+ <div class="two"><button class="quiet" id="bkSave" type="button" data-t="bkSave"></button><button class="quiet" id="bkLoad" type="button" data-t="bkLoad"></button></div>
+ <p class="hint" id="bkMsg"></p>
+ <p class="hint" id="bkOpen" style="color:var(--brass)" data-t="bkOpenWarn" hidden></p>
+</div>
+
 <h2 data-t="software"></h2>
 <div class="card">
  <label><span data-t="version"></span><b id="ver">…</b></label>
@@ -269,6 +281,12 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  signedY:"signed",signedN:"not signed",svcOn:"Service mode until the box restarts: firmware that is not signed can be installed.",
  protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it: hold the key down while plugging the box in, and let go after the first beep (five seconds). That removes the password.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
  lockT:"This box is locked",lockD:"Enter the page's password.",unlock:"Unlock",lockWrong:"That password was not right.",
+ backup:"Backup",bkWhy:"Everything the box knows in one file: Wi-Fi, the receiver and its key, the Tailscale sign-in, the page password and every setting. Restore it after a reset and the box is back as it was, without being added to Tailscale again.",
+ bkPassL:"Passphrase for the backup",bkPassHint:"The file is locked with this passphrase. It is needed to restore the backup, and nothing can open the file without it.",
+ bkSave:"Download backup",bkLoad:"Restore backup…",bkMaking:"Making the backup… (a few seconds)",bkMade:"Backup downloaded. Keep it somewhere safe.",bkNoPass:"Type a passphrase first.",
+ bkAsk:"Restore this backup? The box takes every setting from it and restarts. Use one backup in one box at a time: two boxes with the same Tailscale sign-in push each other off.",
+ bkOpening:"Opening the backup… (a few seconds)",bkDone:"Restored. The box restarts and comes back with the settings from the backup.",bkWrong:"Wrong passphrase.",bkNot:"That file is not a Fjärrnyckel backup.",bkFail:"It did not work: {e}",
+ bkOpenWarn:"There is no page password, so anyone on your Wi-Fi could make a backup too and read the keys in it. Set a password under Protection to stop that.",
  software:"Software",version:"Version",pick:"Install from a file…",upCheck:"Look for updates",upNew:"Version {v} is available",upNewD:"Installing takes about a minute. The box restarts and keeps its settings.",upLatest:"The box has the newest version",upChecking:"Looking for a new version…",upUnknown:"Not looked yet",upInstall:"Install {v}",upOnline:"Downloading and installing… {n} %",upNoGo:"Could not update",upBusy:"Installing… {n} %",upDone:"Installed. The box is restarting…",upFail:"The update failed: ",
  upErr:{"the box could not prepare for the update":"the box could not prepare for it.","the upload was interrupted":"the upload was interrupted.","this is not a Fjarrnyckel firmware file":"this is not a Fjärrnyckel firmware file.","the file is damaged or not a Fjarrnyckel firmware file":"the file is damaged or is not a Fjärrnyckel firmware file.","the new firmware could not be selected":"the new firmware could not be selected.","could not reach the update server":"The box could not reach the update server. It needs internet access.","could not download the update":"The download did not start. Try again.","this firmware is not signed by the Fjarrnyckel project":"this firmware is not signed by the Fjärrnyckel project. To install it anyway, hold the key down for five seconds while plugging the box in."},
  hintS:"The tone follows your key exactly.",mode:"Keyer mode",hintA:"Mode A: when you let go of a squeeze, the element in progress is the last one.",hintB:"Mode B: when you let go of a squeeze, one more element follows.",sidetone:"Sidetone",pitch:"Pitch",volume:"Speaker",hpL:"Headphones",hpHint:"The headphones have their own amplifier. Set the speaker to 0 to hear the tone in the headphones only.",beep:"Play a test tone",foot:"remote CW keying",lang:"Svenska",
@@ -297,6 +315,12 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  signedY:"signerad",signedN:"inte signerad",svcOn:"Serviceläge tills lådan startar om: programvara som inte är signerad kan installeras.",
  protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det: håll nyckeln nedtryckt när lådan kopplas in och släpp efter första pipet (fem sekunder). Då tas lösenordet bort.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
  lockT:"Lådan är låst",lockD:"Ange sidans lösenord.",unlock:"Lås upp",lockWrong:"Lösenordet stämde inte.",
+ backup:"Säkerhetskopia",bkWhy:"Allt lådan vet i en fil: wifi, mottagaren och dess nyckel, Tailscale-inloggningen, sidans lösenord och alla inställningar. Läs tillbaka den efter en nollställning så är lådan som förut, utan att läggas till i Tailscale igen.",
+ bkPassL:"Lösenfras för säkerhetskopian",bkPassHint:"Filen låses med lösenfrasen. Den behövs för att läsa tillbaka kopian, och utan den kan ingen öppna filen.",
+ bkSave:"Ladda ner kopia",bkLoad:"Läs tillbaka…",bkMaking:"Gör säkerhetskopian… (några sekunder)",bkMade:"Säkerhetskopian är nedladdad. Spara den på ett säkert ställe.",bkNoPass:"Skriv en lösenfras först.",
+ bkAsk:"Läsa tillbaka den här säkerhetskopian? Lådan tar alla inställningar från den och startar om. Använd en kopia i en låda i taget: två lådor med samma Tailscale-inloggning knuffar ut varandra.",
+ bkOpening:"Öppnar säkerhetskopian… (några sekunder)",bkDone:"Klart. Lådan startar om och kommer tillbaka med inställningarna från kopian.",bkWrong:"Fel lösenfras.",bkNot:"Filen är ingen säkerhetskopia från Fjärrnyckel.",bkFail:"Det gick inte: {e}",
+ bkOpenWarn:"Sidan har inget lösenord, så vem som helst på ditt wifi kan också göra en säkerhetskopia och läsa nycklarna i den. Sätt ett lösenord under Skydd för att stoppa det.",
  software:"Programvara",version:"Version",pick:"Installera från fil…",upCheck:"Sök uppdatering",upNew:"Version {v} finns",upNewD:"Installationen tar ungefär en minut. Lådan startar om och behåller sina inställningar.",upLatest:"Lådan har den senaste versionen",upChecking:"Söker efter ny version…",upUnknown:"Har inte sökt än",upInstall:"Installera {v}",upOnline:"Laddar ner och installerar… {n} %",upNoGo:"Kunde inte uppdatera",upBusy:"Installerar… {n} %",upDone:"Installerat. Lådan startar om…",upFail:"Uppdateringen misslyckades: ",
  upErr:{"the box could not prepare for the update":"lådan kunde inte förbereda den.","the upload was interrupted":"uppladdningen avbröts.","this is not a Fjarrnyckel firmware file":"det här är ingen programvarufil för Fjärrnyckel.","the file is damaged or not a Fjarrnyckel firmware file":"filen är skadad eller ingen programvarufil för Fjärrnyckel.","the new firmware could not be selected":"den nya programvaran kunde inte väljas.","could not reach the update server":"Lådan nådde inte uppdateringsservern. Den behöver internet.","could not download the update":"Nedladdningen kom inte igång. Försök igen.","this firmware is not signed by the Fjarrnyckel project":"programvaran är inte signerad av Fjärrnyckel-projektet. För att installera den ändå: håll nyckeln nedtryckt i fem sekunder när lådan kopplas in."},
  hintS:"Tonen följer din nyckel exakt.",mode:"Nycklingssätt",hintA:"Läge A: när du släpper ett kläm blir det pågående tecknet det sista.",hintB:"Läge B: när du släpper ett kläm följer ett tecken till.",sidetone:"Medhörning",pitch:"Tonhöjd",volume:"Högtalare",hpL:"Hörlurar",hpHint:"Hörlurarna har en egen förstärkare. Ställ högtalaren på 0 för att bara höra tonen i hörlurarna.",beep:"Spela en testton",foot:"fjärrnyckling av CW",lang:"English",
@@ -311,7 +335,7 @@ function texts(){document.documentElement.lang=L;document.querySelectorAll("[dat
  $("lang").textContent=t("lang");$("scan").textContent=t(scanState);$("join").textContent=t("join");$("beep").textContent=t("beep");
  $("showpw").textContent=t($("pass").classList.contains("shown")?"hide":"show");$("showkey").textContent=t($("lkey").classList.contains("shown")?"hide":"show");
  for(const k of["wOther","wBack","wChange","wRetry"])$(k).textContent=t(k);paintWifi();
- for(const k of["tsOn","tsKeyToggle","tsLogin","tsOff","tsForget"])$(k).textContent=t(k);$("showts").textContent=t($("tsKey").classList.contains("shown")?"hide":"show");$("upCheck").textContent=t("upCheck");$("unlock").textContent=t("unlock");$("pwOff").textContent=t("pwOff");$("showlock").textContent=t($("lockPass").classList.contains("shown")?"hide":"show");$("showpwn").textContent=t($("pwNew").classList.contains("shown")?"hide":"show");$("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
+ for(const k of["tsOn","tsKeyToggle","tsLogin","tsOff","tsForget"])$(k).textContent=t(k);$("showts").textContent=t($("tsKey").classList.contains("shown")?"hide":"show");$("showbk").textContent=t($("bkPass").classList.contains("shown")?"hide":"show");$("upCheck").textContent=t("upCheck");$("unlock").textContent=t("unlock");$("pwOff").textContent=t("pwOff");$("showlock").textContent=t($("lockPass").classList.contains("shown")?"hide":"show");$("showpwn").textContent=t($("pwNew").classList.contains("shown")?"hide":"show");$("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
 function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";return}
  $("ver").textContent=(S.version||"")+" · "+t(S.signed?"signedY":"signedN");$("svc").textContent=S.service?t("svcOn"):"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
  const mhz=S.freq?(S.freq/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:3,maximumFractionDigits:3})+" MHz":"";
@@ -349,7 +373,7 @@ function paintUp(){const lamp=$("upLamp"),set=(c,a,b)=>{lamp.className="lamp "+c
  else if(S.upError)set("bad",t("upNoGo"),er.charAt(0).toUpperCase()+er.slice(1));else if(S.upAvailable)set("busy",t("upNew").replace("{v}",S.latest),t("upNewD"));
  else if(S.upChecked)set("ok",t("upLatest"),"");else set("",t("upUnknown"),"")}
 let locked=false;
-function paintPw(){$("lock").hidden=!locked;$("app").hidden=locked;const on=S&&S.lock;$("pwLamp").className="lamp "+(on?"ok":"");
+function paintPw(){if(S)$("bkOpen").hidden=!!S.lock;$("lock").hidden=!locked;$("app").hidden=locked;const on=S&&S.lock;$("pwLamp").className="lamp "+(on?"ok":"");
  $("pwState").textContent=t(on?"pwOnS":"pwOffS");$("pwDetail").textContent=on?"":t("pwOffD");$("pwLabel").textContent=t(on?"pwChange":"pwNew");$("pwSet").textContent=t(on?"pwSetChange":"pwSet");$("pwOff").hidden=!on}
 function paintUsb(){$("trainBox").hidden=cur.target!=1;$("rawBox").hidden=cur.keyType!=1;$("rawHint").textContent=t(cur.usbRaw==1?"rawHintP":"rawHintK");
  const on=S&&S.usb;$("usbLamp").className="lamp "+(on?"ok":"");$("usbState").textContent=t(on?(S.usbMidi?"usbMidi":"usbOn"):"usbOff");$("usbDetail").textContent=t(on?"usbOnD":"usbOffD")}
@@ -408,6 +432,23 @@ $("lockPass").onkeydown=e=>{if(e.key=="Enter")$("unlock").click()};
 $("pwSet").onclick=async()=>{const p=$("pwNew").value;if(!p)return $("pwNew").focus();await post("/api/password",{pass:p}).catch(()=>{});$("pwNew").value="";status()};
 $("pwOff").onclick=async()=>{if(!confirm(t("pwOffAsk")))return;await post("/api/password",{pass:""}).catch(()=>{});status()};
 $("pick").onclick=()=>$("fw").click();
+// Backups: the box seals them with the passphrase; the page only carries the file to and from the computer.
+const bkMsg=(k,e)=>{$("bkMsg").style.color=k=="bkMade"||k=="bkDone"?"var(--ok)":k=="bkMaking"||k=="bkOpening"?"":"var(--bad)";$("bkMsg").textContent=k?t(k).replace("{e}",e||""):""};
+const bkBusy=b=>{$("bkSave").disabled=$("bkLoad").disabled=b};
+$("showbk").onclick=()=>{$("bkPass").classList.toggle("shown");texts()};
+$("bkSave").onclick=async()=>{const pass=$("bkPass").value;if(!pass){bkMsg("bkNoPass");$("bkPass").focus();return}
+ bkBusy(true);bkMsg("bkMaking");
+ try{const r=await post("/api/backup",{pass});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||r.status);
+  const url=URL.createObjectURL(await r.blob()),a=document.createElement("a");a.href=url;a.download="fjarrnyckel-"+new Date().toISOString().slice(0,10)+".fnb";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);bkMsg("bkMade")}
+ catch(e){bkMsg("bkFail",e.message)}finally{bkBusy(false)}};
+$("bkLoad").onclick=()=>{if(!$("bkPass").value){bkMsg("bkNoPass");$("bkPass").focus();return}$("bkFile").click()};
+$("bkFile").onchange=async()=>{const f=$("bkFile").files[0];$("bkFile").value="";if(!f||!confirm(t("bkAsk")))return;
+ bkBusy(true);bkMsg("bkOpening");
+ try{const b=new Uint8Array(await f.arrayBuffer()),data=Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
+  const r=await post("/api/restore",{pass:$("bkPass").value,data});
+  if(r.ok){bkMsg("bkDone");$("bkPass").value="";return}
+  const e=(await r.json().catch(()=>({}))).error;bkMsg(r.status==403?"bkWrong":e=="not a backup"?"bkNot":"bkFail",e||r.status)}
+ catch(e){bkMsg("bkFail",e.message)}finally{bkBusy(false)}};
 $("fw").onchange=()=>{const f=$("fw").files[0];if(!f)return;const x=new XMLHttpRequest(),m=$("upMsg");x.open("POST","/api/update");
  x.upload.onprogress=e=>{m.textContent=t("upBusy").replace("{n}",Math.round(e.loaded/e.total*100))};
  x.onload=()=>{if(x.status==200){m.textContent=t("upDone");setTimeout(()=>location.reload(),12000)}else{let r="";try{r=JSON.parse(x.responseText).error}catch(e){}m.textContent=t("upFail")+(T[L].upErr[r]||r)}};
