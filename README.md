@@ -89,10 +89,13 @@ With **Finished keying** the box's own keyer and sidetone are used and the site 
 Both amplifiers run from the board's 5V pin. On 3.3 V the headphone amplifier distorted at higher volume.
 On some clone boards the 5V pin only carries USB power once the IN-OUT pads are bridged.
 
-**Tailscale relay region.** The box's Tailscale client keeps one relay connection, to its own home region,
-set by `CONFIG_ML_DERP_REGION` in `firmware/sdkconfig.defaults` (28, Helsinki). It has to be the home
-region of the computer by the radio; with different regions the box cannot reach the receiver until the
-receiver happens to contact the box. `tailscale netcheck` on that computer shows its region.
+**Tailscale relay region.** The box's Tailscale client keeps one relay connection, to its own home region.
+It has to be the home region of the computer by the radio; with different regions the box cannot reach the
+receiver until the receiver happens to contact the box. Left on *Automatic*, the box reads the receiver's
+region from the tailnet and moves there, restarting its Tailscale connection once. The region can also be
+chosen by hand under Connection → Tailscale → Relay. `tailscale netcheck` on the receiver's computer shows
+its region. Choosing the region needed a change to MicroLink, so the firmware carries its own copy in
+`firmware/components/microlink` (see `FJARRNYCKEL.md` there).
 
 ## Updates
 

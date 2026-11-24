@@ -38,6 +38,8 @@ typedef struct {
   uint8_t key_target;   // 0 = the key goes to the radio, 1 = to the computer on the USB port (training)
   uint8_t usb_raw;      // training with a paddle: 1 = send the two paddles as they are, the site does the keying
   uint8_t hp_volume;    // sidetone volume in the headphones, 0-100
+  uint16_t ts_region;   // Tailscale relay region the box calls home; 0 = follow the receiver
+  uint16_t ts_region_auto;  // the receiver's region as last learned, used when ts_region is 0
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -84,7 +86,10 @@ void ts_apply(bool forget_identity);      // after the Tailscale settings change
 ts_state_t ts_state(void);
 bool ts_crashed(void);                    // Tailscale was switched off because the box crashed while starting it
 const char *ts_ip(void);                  // our address on the tailnet, "" when not connected
-const char *ts_login_url(void);           // where the owner signs in to add the box, "" when not asked for
+const char *ts_login_url(void);
+int ts_home_region(void);                 // the relay region in use, 0 = not known yet
+int ts_peer_region(void);                 // the receiver's relay region, 0 = not known
+int ts_regions(char *json, int size);     // the regions Tailscale offers, as a JSON array of {id, code}           // where the owner signs in to add the box, "" when not asked for
 void *ts_handle(void);                    // the MicroLink handle while the link may use it, else NULL
 bool ts_is_tailnet_address(uint32_t host_order);
 

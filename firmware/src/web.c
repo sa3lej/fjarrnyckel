@@ -15,6 +15,7 @@ extern const char page_end[] asm("_binary_page_html_end");
 extern const char logo_start[] asm("_binary_logo_png_start");
 extern const char logo_end[] asm("_binary_logo_png_end");
 
+static int clamp(int v, int lo, int hi);
 static void json_text(char *out, int size, const char *in) {      // a C string as JSON string contents
   int at = 0;
   for (; *in && at < size - 8; in++) {
@@ -80,7 +81,7 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[1950];
+  char ssid[80], host[140], login[2 * 256 + 8], body[2050];
   json_text(login, sizeof login, ts_login_url());
   json_text(ssid, sizeof ssid, settings.ssid);
   json_text(host, sizeof host, settings.link_host);
@@ -91,18 +92,25 @@ static esp_err_t get_status(httpd_req_t *req) {
     "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"hp\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,"
-    "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,"
+    "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,\"tsRegion\":%u,\"tsHome\":%d,\"tsPeerHome\":%d,"
     "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, settings.hp_volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
     links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false",
-    tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false",
+    tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false", settings.ts_region, ts_home_region(), ts_peer_region(),
     u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false",
     u.is_signed ? "true" : "false", service_mode() ? "true" : "false", !settings.led_off, !settings.tones_off,
     settings.key_target, settings.usb_raw, usb_connected() ? "true" : "false", usb_midi_mode() ? "true" : "false");
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+  return httpd_resp_sendstr(req, body);
+}
+
+static esp_err_t get_relays(httpd_req_t *req) {
+  static char body[1400];
+  ts_regions(body, sizeof body);
+  httpd_resp_set_type(req, "application/json");
   return httpd_resp_sendstr(req, body);
 }
 
@@ -169,6 +177,7 @@ static esp_err_t post_tailscale(httpd_req_t *req) {
   if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
   if (field(body, "on", v, sizeof v)) settings.ts_on = atoi(v) ? 1 : 0;
   if (field(body, "key", key, sizeof key) && key[0]) strlcpy(settings.ts_key, key, sizeof settings.ts_key);
+  if (field(body, "region", v, sizeof v)) settings.ts_region = (uint16_t)clamp(atoi(v), 0, 999);
   bool forget = field(body, "forget", v, sizeof v) && atoi(v);
   if (forget) settings.ts_key[0] = 0;
   settings_save();
@@ -256,6 +265,7 @@ void web_start(void) {
     { .uri = "/logo.png", .method = HTTP_GET, .handler = get_logo },
     { .uri = "/api/status", .method = HTTP_GET, .handler = get_status },
     { .uri = "/api/scan", .method = HTTP_GET, .handler = get_scan },
+    { .uri = "/api/relays", .method = HTTP_GET, .handler = get_relays },
     { .uri = "/api/wifi", .method = HTTP_POST, .handler = post_wifi },
     { .uri = "/api/settings", .method = HTTP_POST, .handler = post_settings },
     { .uri = "/api/link", .method = HTTP_POST, .handler = post_link },
@@ -264,7 +274,7 @@ void web_start(void) {
     { .uri = "/api/update", .method = HTTP_POST, .handler = update_upload },
   };
   new_session();
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 11; i++) {
     httpd_uri_t r = routes[i];
     if (i >= 2) { r.user_ctx = (void *)r.handler; r.handler = guarded; }     // the page and the logo are always shown
     httpd_register_uri_handler(server, &r);

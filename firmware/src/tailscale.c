@@ -19,6 +19,15 @@ static volatile ts_state_t state = TS_OFF;
 static volatile uint32_t generation;         // changes when the Tailscale settings do
 static volatile bool forget;
 static char ip[16], url[MICROLINK_AUTH_URL_MAX];
+static volatile int home_region, peer_region;
+static uint16_t region_ids[32]; static char region_codes[32][8]; static volatile int region_count;
+int ts_home_region(void) { return home_region; }
+int ts_peer_region(void) { return peer_region; }
+int ts_regions(char *json, int size) {
+  int at = snprintf(json, size, "[");
+  for (int i = 0; i < region_count && at < size - 40; i++) at += snprintf(json + at, size - at, "%s{\"id\":%u,\"code\":\"%s\"}", i ? "," : "", region_ids[i], region_codes[i]);
+  return at + snprintf(json + at, size - at, "]");
+}
 // Kept across a restart but not across a power cut: set while Tailscale is starting. If the box crashes with it
 // set, Tailscale is switched off at the next start, so a fault there cannot keep the box restarting for ever.
 #define STARTING 0x7A11CA1E
@@ -41,7 +50,7 @@ static void stop(void) {
   link_restart();
   while (link_uses_tailscale()) vTaskDelay(pdMS_TO_TICKS(20));
   microlink_destroy(ml);
-  ml = NULL; ip[0] = url[0] = 0;
+  ml = NULL; ip[0] = url[0] = 0; home_region = peer_region = 0;
 }
 
 static bool start(void) {
@@ -51,6 +60,9 @@ static bool start(void) {
   struct in_addr a;
   if (inet_aton(settings.link_host, &a) && ts_is_tailnet_address(ntohl(a.s_addr))) cfg.priority_peer_ip = ntohl(a.s_addr);
   starting = STARTING; started_at = esp_timer_get_time();
+  // The box has to be at home on the same Tailscale relay as the receiver: MicroLink only listens and calls on
+  // its own home relay, and the receiver only on its own until it has something to say to us.
+  microlink_set_home_region(settings.ts_region ? settings.ts_region : settings.ts_region_auto);
   ml = microlink_init(&cfg);
   if (!ml) { ESP_LOGE(TAG, "could not start"); return false; }
   if (microlink_start(ml) != ESP_OK) { ESP_LOGE(TAG, "could not start connecting"); microlink_destroy(ml); ml = NULL; return false; }
@@ -81,6 +93,16 @@ static void ts_task(void *arg) {
                      : s == ML_STATE_AUTH_FAILED ? TS_AUTH_FAILED : s == ML_STATE_ERROR ? TS_ERROR : TS_CONNECTING;
       if (now != state && now == TS_CONNECTED) ESP_LOGI(TAG, "connected, address %s", ip);
       state = now;
+      home_region = microlink_get_home_region(ml);
+      if (!region_count && s == ML_STATE_CONNECTED) region_count = microlink_get_derp_regions(ml, region_ids, region_codes, 32);
+      // Find the receiver among the peers and see where it is at home. Left to itself (ts_region 0) the box moves there.
+      struct in_addr a; uint32_t peer = 0;
+      if (inet_aton(settings.link_host, &a)) peer = ntohl(a.s_addr); else if (settings.link_host[0]) peer = microlink_resolve(ml, settings.link_host);
+      peer_region = microlink_peer_home_region(ml, peer);
+      if (!settings.ts_region && peer_region && peer_region != (settings.ts_region_auto ? settings.ts_region_auto : CONFIG_ML_DERP_REGION)) {
+        ESP_LOGI(TAG, "the receiver is at home on relay %d: moving there", peer_region);
+        settings.ts_region_auto = peer_region; settings_save(); generation++;
+      }
       shared = microlink_is_connected(ml) ? ml : shared;  // once up, the link keeps its socket through short reconnects
     }
     vTaskDelay(pdMS_TO_TICKS(300));

@@ -43,8 +43,8 @@ h2{font-size:.78rem;font-weight:600;line-height:1;letter-spacing:.14em;text-tran
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem;box-shadow:0 6px 20px #0004}
 label{display:flex;justify-content:space-between;align-items:baseline;margin:1rem 0 .35rem;font-size:.93rem;color:var(--dim)}
 label:first-child{margin-top:0}label b{color:var(--cream);font-weight:600;font-variant-numeric:tabular-nums}
-input[type=text],input[type=password]{width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;outline:none}
-input:focus-visible,button:focus-visible{outline:2px solid var(--brass2);outline-offset:2px}
+input[type=text],input[type=password],select{width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;outline:none}
+select{cursor:pointer}input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--brass2);outline-offset:2px}
 .pw{position:relative}.pw button{position:absolute;right:.3rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--dim);font:inherit;font-size:.85rem;padding:.4rem .6rem;cursor:pointer}
 .main{width:100%;box-sizing:border-box;margin-top:1rem;font-family:inherit;font-size:1rem;font-weight:600;line-height:1;color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border:0;border-radius:10px;padding:.85rem;cursor:pointer;box-shadow:0 2px 0 #9a7222,0 6px 16px #0006}
 .main:active{transform:translateY(1px);box-shadow:0 1px 0 #9a7222}
@@ -152,7 +152,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
   <button class="main" id="tsOn" type="button"></button>
   <button class="quiet" id="tsKeyToggle" type="button" style="margin-top:.6rem"></button></div>
  <div id="tsLoginBox" hidden><a class="main link" id="tsLogin" target="_blank" rel="noopener"></a><p class="hint" data-t="tsLoginHint"></p></div>
- <div id="tsOnBox" hidden><div class="two"><button class="quiet" id="tsOff" type="button"></button><button class="quiet" id="tsForget" type="button"></button></div></div>
+ <div id="tsOnBox" hidden><label for="tsRegion" data-t="relayL"></label><select id="tsRegion"></select><p class="hint" id="relayHint"></p><div class="two" style="margin-top:.9rem"><button class="quiet" id="tsOff" type="button"></button><button class="quiet" id="tsForget" type="button"></button></div></div>
 </div>
 
 <h2 data-t="link"></h2>
@@ -258,6 +258,7 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  tsWhy:"Tailscale connects the box to the computer by the radio across the internet, with nothing to open in a router. Free for personal use.",tsOn:"Connect to Tailscale",tsKeyToggle:"I have an auth key",tsKey:"Auth key",tsKeyHint:"Optional. Without a key you sign in with your Tailscale account in the next step.",
  tsOffS:"Off",tsNoWifi:"Waiting for Wi-Fi",tsCon:"Connecting to Tailscale…",tsNeed:"Sign in to add the box",tsNeedD:"Only needed once. The box remembers it.",tsLogin:"Sign in to Tailscale",tsLoginHint:"Opens Tailscale's sign-in page. This device needs internet access.",
  tsOk:"Connected to Tailscale",tsOkD:"The box's Tailscale address: {ip}",tsFail:"Tailscale did not accept the box",tsFailD:"The key may have expired, or the box was removed from your tailnet. Start over to sign in again.",tsErr:"Tailscale could not start",tsErrD:"The box tries again by itself.",tsCrash:"Switched off: the box restarted while Tailscale was starting.",
+ relayL:"Relay",relayAuto:"Automatic (same as the receiver)",relayHere:"The box uses {a}.",relayPeer:" The receiver uses {b}.",relayBad:" They must be the same for the box to find the receiver by itself.",relayWhy:"Tailscale's relay is where the box and the receiver first find each other.",
  tsOff:"Switch off",tsForget:"Start over",tsForgetAsk:"Erase the box's Tailscale sign-in? It then has to be added again.",lNoTs:"Waiting for Tailscale",lNoTsD:"The receiver's address is on Tailscale.",via:"through Tailscale",
  targetL:"The key goes to",tRadio:"The radio",tComputer:"The computer (training)",keyTypeL:"Key type",
  usbOn:"The computer sees the box as a key",usbOnD:"Open a practice site, for example VBand, Vail or Morse Code World, and send.",usbMidi:"A site is using the box over MIDI",usbOff:"Not connected to a computer",usbOffD:"Run a cable from the box's port marked USB to the computer.",
@@ -285,6 +286,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  tsWhy:"Tailscale kopplar ihop lådan med datorn vid radion över internet, utan att något behöver öppnas i en router. Gratis för privat bruk.",tsOn:"Anslut till Tailscale",tsKeyToggle:"Jag har en auth-nyckel",tsKey:"Auth-nyckel",tsKeyHint:"Valfritt. Utan nyckel loggar du in med ditt Tailscale-konto i nästa steg.",
  tsOffS:"Avstängt",tsNoWifi:"Väntar på Wi-Fi",tsCon:"Ansluter till Tailscale…",tsNeed:"Logga in för att lägga till lådan",tsNeedD:"Behövs bara en gång. Lådan kommer ihåg det.",tsLogin:"Logga in på Tailscale",tsLoginHint:"Öppnar Tailscales inloggningssida. Den här enheten behöver internet.",
  tsOk:"Ansluten till Tailscale",tsOkD:"Lådans Tailscale-adress: {ip}",tsFail:"Tailscale godtog inte lådan",tsFailD:"Nyckeln kan ha gått ut, eller så har lådan tagits bort ur ditt tailnet. Börja om för att logga in igen.",tsErr:"Tailscale kunde inte starta",tsErrD:"Lådan försöker igen av sig själv.",tsCrash:"Avstängt: lådan startade om när Tailscale skulle starta.",
+ relayL:"Relä",relayAuto:"Automatiskt (samma som mottagaren)",relayHere:"Lådan använder {a}.",relayPeer:" Mottagaren använder {b}.",relayBad:" De måste vara samma för att lådan ska hitta mottagaren själv.",relayWhy:"Tailscales relä är platsen där lådan och mottagaren först hittar varandra.",
  tsOff:"Stäng av",tsForget:"Börja om",tsForgetAsk:"Radera lådans Tailscale-inloggning? Den måste sedan läggas till igen.",lNoTs:"Väntar på Tailscale",lNoTsD:"Mottagarens adress ligger på Tailscale.",via:"via Tailscale",
  targetL:"Nyckeln går till",tRadio:"Radion",tComputer:"Datorn (träning)",keyTypeL:"Typ av nyckel",
  usbOn:"Datorn ser lådan som en nyckel",usbOnD:"Öppna en övningssida, till exempel VBand, Vail eller Morse Code World, och sänd.",usbMidi:"En sida använder lådan via MIDI",usbOff:"Inte ansluten till en dator",usbOffD:"Dra en kabel från lådans port märkt USB till datorn.",
@@ -319,7 +321,18 @@ function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail"
  if(S.link=="ready")set("ok","lReady",extra);else if(S.link=="waiting")S.rigValid&&!S.cw?set("busy","lWaitCw",t("lWaitCwD")):set("busy","lWait",extra);
  else if(S.link=="no-answer")set("bad","lNoAnswer",t("lNoAnswerD"));else if(S.link=="not-found")set("bad","lNotFound",t("lNotFoundD"));
  else if(S.link=="no-tailscale")set("busy","lNoTs",t("lNoTsD"));else if(S.link=="no-wifi")set("","lNoWifi","");else set("","lOff",t("lOffD"))}
-function paintTs(){const lamp=$("tsLamp"),set=(c,a,b)=>{lamp.className="lamp "+c;$("tsState").textContent=a?t(a):"…";$("tsDetail").textContent=b||""};
+// Tailscale's relay regions by their short code. Unknown codes are shown as they are.
+const RELAYS={nyc:"New York",sfo:"San Francisco",sin:"Singapore",fra:"Frankfurt",syd:"Sydney",blr:"Bangalore",tok:"Tokyo",lhr:"London",dfw:"Dallas",sea:"Seattle",sao:"São Paulo",ord:"Chicago",den:"Denver",ams:"Amsterdam",jnb:"Johannesburg",mia:"Miami",lax:"Los Angeles",par:"Paris",mad:"Madrid",hkg:"Hong Kong",tor:"Toronto",waw:"Warszawa",dbi:"Dubai",hnl:"Honolulu",nai:"Nairobi",hel:"Helsinki",iad:"Ashburn",nue:"Nürnberg"};
+let relays=[],relaysAt=0;
+const relayName=id=>{const r=relays.find(r=>r.id==id);return r?(RELAYS[r.code]||r.code):"#"+id};
+function paintRelay(){const sel=$("tsRegion");
+ if(S.ts=="connected"&&!relays.length&&Date.now()-relaysAt>5000){relaysAt=Date.now();fetch("/api/relays").then(r=>r.json()).then(l=>{relays=l;relays.sort((a,b)=>relayName(a.id).localeCompare(relayName(b.id)));paintRelay()}).catch(()=>{})}
+ const want=[0,...relays.map(r=>r.id)];if(S.tsRegion&&!want.includes(S.tsRegion))want.push(S.tsRegion);
+ const key=want.join()+L;if(sel.dataset.k!=key){sel.dataset.k=key;sel.replaceChildren(...want.map(id=>new Option(id?relayName(id):t("relayAuto"),id)))}
+ if(document.activeElement!=sel)sel.value=S.tsRegion;
+ let h=S.tsHome?t("relayHere").replace("{a}",relayName(S.tsHome)):t("relayWhy");if(S.tsHome&&S.tsPeerHome){h+=t("relayPeer").replace("{b}",relayName(S.tsPeerHome));if(S.tsHome!=S.tsPeerHome)h+=t("relayBad")}
+ $("relayHint").textContent=h}
+function paintTs(){if(S)paintRelay();const lamp=$("tsLamp"),set=(c,a,b)=>{lamp.className="lamp "+c;$("tsState").textContent=a?t(a):"…";$("tsDetail").textContent=b||""};
  const s=S?S.ts:"";$("tsOffBox").hidden=s!="off";$("tsLoginBox").hidden=s!="needs-login";$("tsOnBox").hidden=!S||s=="off";
  if(s=="needs-login"&&$("tsLogin").getAttribute("href")!=S.tsLogin)$("tsLogin").href=S.tsLogin;
  if(!S)set("","","");else if(s=="connected")set("ok","tsOk",t("tsOkD").replace("{ip}",S.tsIp));else if(s=="needs-login")set("busy","tsNeed",t("tsNeedD"));
@@ -384,6 +397,7 @@ $("tsKeyToggle").onclick=()=>{$("tsKeyBox").hidden=false;$("tsKeyToggle").hidden
 const tsPost=async d=>{await post("/api/tailscale",d).catch(()=>{});$("tsKey").value="";status()};
 $("tsOn").onclick=()=>tsPost({on:1,key:$("tsKey").value.trim()});
 $("tsOff").onclick=()=>tsPost({on:0});
+$("tsRegion").onchange=()=>{S.tsRegion=+$("tsRegion").value;tsPost({region:S.tsRegion})};
 $("tsForget").onclick=()=>{if(confirm(t("tsForgetAsk")))tsPost({on:1,forget:1})};
 $("upCheck").onclick=()=>post("/api/update/online",{check:1}).then(status).catch(()=>{});
 $("upInstall").onclick=()=>{upBusy=true;post("/api/update/online",{install:1}).then(status).catch(()=>{})};
