@@ -25,13 +25,41 @@
 static const char *TAG = "usb";
 enum { ITF_HID, ITF_MIDI, ITF_MIDI_STREAMING, ITF_AUDIO_CONTROL, ITF_AUDIO_STREAMING, ITF_COUNT };
 #define AUDIO_RATE 48000
+// The sound card: TinyUSB's TUD_AUDIO20_SPEAKER_MONO_FB_DESCRIPTOR without its feedback endpoint, and with an
+// adaptive instead of an asynchronous data endpoint. On this chip an isochronous IN packet is only delivered in
+// the very frame it was loaded for; macOS polls the feedback endpoint at its own pace, the feedback transfers
+// failed, and macOS stopped sending after 64 ms (seen on the box in 0.11.2: 63 packets, then the OUT endpoint
+// armed and waiting, the feedback endpoint disabled). Adaptive means the box follows the computer's clock
+// instead; usb_audio_take() does that with a gentle resampler.
+#define SPEAKER_DESC_LEN (TUD_AUDIO20_DESC_IAD_LEN + TUD_AUDIO20_DESC_STD_AC_LEN + TUD_AUDIO20_DESC_CS_AC_LEN \
+  + TUD_AUDIO20_DESC_CLK_SRC_LEN + TUD_AUDIO20_DESC_INPUT_TERM_LEN + TUD_AUDIO20_DESC_OUTPUT_TERM_LEN \
+  + TUD_AUDIO20_DESC_FEATURE_UNIT_LEN(1) + TUD_AUDIO20_DESC_STD_AS_LEN + TUD_AUDIO20_DESC_STD_AS_LEN \
+  + TUD_AUDIO20_DESC_CS_AS_INT_LEN + TUD_AUDIO20_DESC_TYPE_I_FORMAT_LEN + TUD_AUDIO20_DESC_STD_AS_ISO_EP_LEN \
+  + TUD_AUDIO20_DESC_CS_AS_ISO_EP_LEN)
+#define SPEAKER_DESCRIPTOR(_itfnum, _epoutsize) \
+  TUD_AUDIO20_DESC_IAD(_itfnum, 0x02, 0x00), \
+  TUD_AUDIO20_DESC_STD_AC(_itfnum, 0x00, 0x00), \
+  TUD_AUDIO20_DESC_CS_AC(0x0200, AUDIO20_FUNC_DESKTOP_SPEAKER, TUD_AUDIO20_DESC_CLK_SRC_LEN + TUD_AUDIO20_DESC_INPUT_TERM_LEN \
+    + TUD_AUDIO20_DESC_OUTPUT_TERM_LEN + TUD_AUDIO20_DESC_FEATURE_UNIT_LEN(1), AUDIO20_CS_AS_INTERFACE_CTRL_LATENCY_POS), \
+  TUD_AUDIO20_DESC_CLK_SRC(0x04, AUDIO20_CLOCK_SOURCE_ATT_INT_FIX_CLK, (AUDIO20_CTRL_R << AUDIO20_CLOCK_SOURCE_CTRL_CLK_FRQ_POS), 0x01, 0x00), \
+  TUD_AUDIO20_DESC_INPUT_TERM(0x01, AUDIO_TERM_TYPE_USB_STREAMING, 0x00, 0x04, 0x01, AUDIO20_CHANNEL_CONFIG_NON_PREDEFINED, 0x00, 0, 0x00), \
+  TUD_AUDIO20_DESC_OUTPUT_TERM(0x03, AUDIO_TERM_TYPE_OUT_DESKTOP_SPEAKER, 0x01, 0x02, 0x04, 0x0000, 0x00), \
+  TUD_AUDIO20_DESC_FEATURE_UNIT(0x02, 0x01, 0x00, \
+    AUDIO20_CTRL_RW << AUDIO20_FEATURE_UNIT_CTRL_MUTE_POS | AUDIO20_CTRL_RW << AUDIO20_FEATURE_UNIT_CTRL_VOLUME_POS, \
+    AUDIO20_CTRL_RW << AUDIO20_FEATURE_UNIT_CTRL_MUTE_POS | AUDIO20_CTRL_RW << AUDIO20_FEATURE_UNIT_CTRL_VOLUME_POS), \
+  TUD_AUDIO20_DESC_STD_AS_INT((uint8_t)((_itfnum) + 1), 0x00, 0x00, 0x00), \
+  TUD_AUDIO20_DESC_STD_AS_INT((uint8_t)((_itfnum) + 1), 0x01, 0x01, 0x00), \
+  TUD_AUDIO20_DESC_CS_AS_INT(0x01, AUDIO20_CTRL_NONE, AUDIO20_FORMAT_TYPE_I, AUDIO20_DATA_FORMAT_TYPE_I_PCM, 0x01, AUDIO20_CHANNEL_CONFIG_NON_PREDEFINED, 0x00), \
+  TUD_AUDIO20_DESC_TYPE_I_FORMAT(2, 16), \
+  TUD_AUDIO20_DESC_STD_AS_ISO_EP(0x03, (uint8_t)((uint8_t)TUSB_XFER_ISOCHRONOUS | (uint8_t)TUSB_ISO_EP_ATT_ADAPTIVE | (uint8_t)TUSB_ISO_EP_ATT_DATA), _epoutsize, 0x01), \
+  TUD_AUDIO20_DESC_CS_AS_ISO_EP(AUDIO20_CS_AS_ISO_DATA_EP_ATT_NON_MAX_PACKETS_OK, AUDIO20_CTRL_NONE, AUDIO20_CS_AS_ISO_DATA_EP_LOCK_DELAY_UNIT_UNDEFINED, 0x0000)
 static const uint8_t hid_report[] = { TUD_HID_REPORT_DESC_KEYBOARD() };
 static const uint8_t config_desc[] = {
-  TUD_CONFIG_DESCRIPTOR(1, ITF_COUNT, 0, TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_MIDI_DESC_LEN + TUD_AUDIO20_SPEAKER_MONO_FB_DESC_LEN, 0, 100),
+  TUD_CONFIG_DESCRIPTOR(1, ITF_COUNT, 0, TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_MIDI_DESC_LEN + SPEAKER_DESC_LEN, 0, 100),
   TUD_HID_DESCRIPTOR(ITF_HID, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof hid_report, 0x81, 8, 1),
   TUD_MIDI_DESCRIPTOR(ITF_MIDI, 0, 0x02, 0x82, 64),
-  // the sound card: 16-bit mono, OUT endpoint 3, feedback on IN endpoint 3
-  TUD_AUDIO20_SPEAKER_MONO_FB_DESCRIPTOR(ITF_AUDIO_CONTROL, 0, 2, 16, 0x03, CFG_TUD_AUDIO_FUNC_1_EP_OUT_SZ_MAX, 0x83, 4),
+  // the sound card: 16-bit mono on OUT endpoint 3
+  SPEAKER_DESCRIPTOR(ITF_AUDIO_CONTROL, CFG_TUD_AUDIO_FUNC_1_EP_OUT_SZ_MAX),
 };
 _Static_assert(CFG_TUD_AUDIO_FUNC_1_EP_OUT_SZ_MAX == TUD_AUDIO_EP_SIZE(false, AUDIO_RATE, 2, 1), "endpoint size and rate disagree");
 // With the sound card in it the port is a composite device with interface associations, which needs the
@@ -87,14 +115,19 @@ static void midi_task(void *arg) {
 }
 
 // ---- the sound card ----
-// The computer sends 1 ms packets into TinyUSB's buffer; the audio task takes 2 ms blocks out of it at the pace
-// of the box's own I2S clock. The feedback endpoint reports how full that buffer is, so the computer speeds up
-// or slows down a little and the buffer stays half full: no clicks from the two clocks drifting apart.
+// The computer sends 1 ms packets at its own clock into TinyUSB's buffer; the audio task takes 2 ms blocks at the
+// box's I2S clock. The two clocks differ by a few hundredths of a percent, so the audio task plays the computer's
+// samples a tiny bit faster or slower (linear interpolation) to keep about 8 ms buffered: no gaps, no clicks.
 // Mute and volume from the computer are honoured on top of the box's own radio volume.
 static volatile bool streaming, primed;
 static int16_t host_vol[2] = { 0, 0 };   // 1/256 dB, master and channel 1
 static bool host_mute[2];
 static volatile float host_gain = 1;
+#define RING 2048          // samples held by the box itself (power of two)
+#define TARGET 384         // samples to keep buffered: 8 ms
+static int16_t ring[RING];
+static int r_tail, r_count; // r_tail: oldest sample
+static float frac, err_avg; // position between the two oldest samples; smoothed buffer error
 static void update_gain(void) {
   float db = (host_vol[0] + host_vol[1]) / 256.0f;
   host_gain = (host_mute[0] || host_mute[1]) ? 0 : powf(10, db / 20);
@@ -109,35 +142,51 @@ bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n, uint8_t func_id, uint8_t 
   rx_bytes += n; rx_packets++;
   return true;
 }
-// The USB controller's own view of the sound card's OUT endpoint (3) and feedback endpoint (IN 3): control,
-// interrupt and transfer-size registers, plus the core interrupt status and the frame number. Read-only.
+// The USB controller's own view of the sound card's OUT endpoint (3): control and transfer-size registers, and
+// the core interrupt status. Read-only.
 #define OTG(off) (*(volatile uint32_t *)(0x60080000 + (off)))
 int usb_audio_report(char *out, int size) {
-  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%u,\"underruns\":%lu,\"gain\":%.3f,"
-                  "\"busyOut\":%s,\"busyFb\":%s,\"doepctl\":\"%08lx\",\"doepint\":\"%08lx\",\"doeptsiz\":\"%08lx\",\"diepctl\":\"%08lx\",\"diepint\":\"%08lx\",\"gintsts\":\"%08lx\",\"gintmsk\":\"%08lx\",\"dsts\":\"%08lx\"}",
+  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%d,\"rate\":%.5f,\"underruns\":%lu,\"gain\":%.3f,"
+                  "\"busyOut\":%s,\"doepctl\":\"%08lx\",\"doeptsiz\":\"%08lx\",\"gintsts\":\"%08lx\"}",
                   streaming ? "true" : "false", primed ? "true" : "false", (unsigned long)itf_sets, last_alt == 0xFF ? -1 : last_alt,
-                  (unsigned long)rx_bytes, (unsigned long)rx_packets, ready ? tud_audio_available() : 0, (unsigned long)underruns, host_gain,
-                  ready && usbd_edpt_busy(0, 0x03) ? "true" : "false", ready && usbd_edpt_busy(0, 0x83) ? "true" : "false",
-                  (unsigned long)OTG(0xB60), (unsigned long)OTG(0xB68), (unsigned long)OTG(0xB70),
-                  (unsigned long)OTG(0x960), (unsigned long)OTG(0x968), (unsigned long)OTG(0x014), (unsigned long)OTG(0x018), (unsigned long)OTG(0x808));
+                  (unsigned long)rx_bytes, (unsigned long)rx_packets, r_count, 1 + fminf(fmaxf(err_avg * 0.003f, -0.003f), 0.003f),
+                  (unsigned long)underruns, host_gain, ready && usbd_edpt_busy(0, 0x03) ? "true" : "false",
+                  (unsigned long)OTG(0xB60), (unsigned long)OTG(0xB70), (unsigned long)OTG(0x014));
 }
+
+
+static void ring_drop(int k) { r_tail = (r_tail + k) & (RING - 1); r_count -= k; }
 
 // Fills n samples of radio audio; silence when nothing is coming. Called by the audio task every block.
 void usb_audio_take(int16_t *out, int n) {
-  int want = n * 2;
-  if (!ready || !streaming) { primed = false; memset(out, 0, want); return; }
-  uint16_t have = tud_audio_available();
-  if (!primed) { if (have >= CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2) primed = true; else { memset(out, 0, want); return; } }
-  int got = tud_audio_read(out, have < want ? have & ~1 : want);
-  if (got < want) { memset((uint8_t *)out + got, 0, want - got); underruns++; if (got == 0) primed = false; }   // ran dry: build up again
+  if (!ready || !streaming) { primed = false; r_count = 0; frac = 0; err_avg = 0; memset(out, 0, n * 2); return; }
+  // take everything TinyUSB holds
+  int16_t chunk[96];
+  for (;;) {
+    uint16_t have = tud_audio_available() & ~1;
+    if (!have) break;
+    int got = tud_audio_read(chunk, have < sizeof chunk ? have : sizeof chunk) / 2;
+    for (int i = 0; i < got; i++) {
+      if (r_count == RING) ring_drop(1);   // far too much: drop the oldest
+      ring[(r_tail + r_count) & (RING - 1)] = chunk[i]; r_count++;
+    }
+  }
+  if (!primed) {
+    if (r_count < TARGET) { memset(out, 0, n * 2); return; }
+    primed = true; frac = 0; err_avg = 0;
+  }
+  // Play slightly faster when more than the target is buffered, slower when less: at most 0.3 %, smoothed over
+  // about a tenth of a second, so the pitch never wobbles audibly.
+  err_avg += ((float)(r_count - TARGET) / TARGET - err_avg) * 0.02f;
+  float step = 1 + fminf(fmaxf(err_avg * 0.003f, -0.003f), 0.003f);
   float g = host_gain;
-  if (g < 0.999f) for (int i = 0; i < n; i++) out[i] = (int16_t)(out[i] * g);
-}
-
-void tud_audio_feedback_params_cb(uint8_t func_id, uint8_t alt_itf, audio_feedback_params_t *p) {
-  p->method = AUDIO_FEEDBACK_METHOD_FIFO_COUNT;
-  p->sample_freq = AUDIO_RATE;
-  p->fifo_count.fifo_threshold = CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2;
+  for (int i = 0; i < n; i++) {
+    if (r_count < 2) { memset(out + i, 0, (n - i) * 2); underruns++; primed = false; return; }   // ran dry: build up again
+    float a = ring[r_tail], b = ring[(r_tail + 1) & (RING - 1)];
+    out[i] = (int16_t)((a + (b - a) * frac) * g);
+    frac += step;
+    while (frac >= 1 && r_count >= 2) { ring_drop(1); frac -= 1; }
+  }
 }
 
 bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const *req) {
