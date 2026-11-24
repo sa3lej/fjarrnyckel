@@ -13,7 +13,7 @@ static i2s_chan_handle_t tx, tx_hp;
 static volatile int beep_hz, beep_blocks;
 
 static void audio_task(void *arg) {
-  float phase = 0, gain = 0;
+  float phase = 0, gain = 0, lv = 0, hp_lv = 0;   // lv, hp_lv: the two volumes as they are right now
   const float ramp = 1.0f / (0.005f * RATE);   // 5 ms fade in and out, so the tone does not click
   int16_t frames[BLOCK * 2];
   int32_t hp[BLOCK * 2];   // 32-bit samples: at headphone levels 16 bits would leave only a few hundred steps, which sounds gritty
@@ -27,9 +27,11 @@ static void audio_task(void *arg) {
     for (int i = 0; i < BLOCK; i++) {
       gain += on ? ramp : -ramp; if (gain > 1) gain = 1; if (gain < 0) gain = 0;
       phase += 2 * (float)M_PI * hz / RATE; if (phase > 2 * (float)M_PI) phase -= 2 * (float)M_PI;
+      // A volume glides to its new setting over a few hundredths of a second. A jump in the middle of a tone is a click.
+      lv += (level - lv) * 0.003f; hp_lv += (hp_level - hp_lv) * 0.003f;
       float v = sinf(phase) * gain * 32767;
-      frames[2 * i] = frames[2 * i + 1] = (int16_t)(v * level);   // same in both channels: the amplifier plays their average
-      hp[2 * i] = hp[2 * i + 1] = (int32_t)(v * hp_level * 65536.0f);
+      frames[2 * i] = frames[2 * i + 1] = (int16_t)(v * lv);   // same in both channels: the amplifier plays their average
+      hp[2 * i] = hp[2 * i + 1] = (int32_t)(v * hp_lv * 65536.0f);
     }
     size_t written;
     i2s_channel_write(tx, frames, sizeof frames, &written, portMAX_DELAY);

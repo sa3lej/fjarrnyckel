@@ -367,7 +367,13 @@ function show(){for(const k of["wpm","tone","volume","hp"]){const e=$(k);$(k+"V"
  $("paddleBox").hidden=cur.keyType!=1;paintUsb();$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
  if(!loaded){loaded=true;for(const k of["wpm","tone","volume","hp"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show();if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
-for(const k of["wpm","tone","volume","hp"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
+// A slider sends its value while it is dragged. Only one request per slider is on its way at a time and the newest
+// value always goes last; otherwise two could overtake each other and the setting would jump back and forth.
+const live={};
+function slide(k,save){const q=live[k]||(live[k]={busy:false,next:null});const d={[k]:$(k).value};if(save)d.save=1;
+ if(q.busy){q.next=q.next&&q.next.save?{...d,save:1}:d;return}
+ q.busy=true;post("/api/settings",d).catch(()=>{}).finally(()=>{q.busy=false;if(q.next){const n=q.next;q.next=null;$(k).value=n[k];slide(k,n.save)}})}
+for(const k of["wpm","tone","volume","hp"]){$(k).oninput=()=>{show();slide(k,false)};$(k).onchange=()=>slide(k,true)}
 for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
