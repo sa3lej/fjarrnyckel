@@ -31,38 +31,202 @@ Work in progress. Honest state of each part:
 |---|---|
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
-| Box firmware (`firmware/`) | Wi-Fi setup, setup page, keyer and sidetone run on hardware. The keying link is written and tested on a computer but not yet in the firmware. |
+| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB is written but not yet tried on hardware. |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
 | Status light and tones, signed firmware, reset with the key | From 0.6.0. |
-| Enclosure (`enclosure/`) | Sized for the parts in use: the wide ESP32-S3 clone on its headers (YD-ESP32-S3 drawing), two MAX98357A boards standing in grooved posts with Dupont plugs, the CQRobot 70 × 31 × 16 mm speaker held by lid pins in its screw holes, PJ-392 key and headphone sockets, ruthex M3 inserts. Reviewed by Codex; fixes applied. Not printed yet: print `stl/fjarrnyckel-coupon.stl` first and try the real parts in it. Put 1 mm foam tape on the lid's four speaker pads. `fjarrnyckel-box.jpg` is a generated picture of an earlier version, not a photo of a print. |
+| Enclosure (`enclosure/`) | Designed for the parts listed below and reviewed; first print under way. |
 | VFO knob (`vfo/`) | Draft of a companion tuning knob. |
 
-## Hardware for the box
+## Build your own
 
-**[Build guide](docs/build-guide.md):** parts with links, pin map, wiring chart, printing and assembly,
-step by step.
+The box is built from ready-made boards, a printed enclosure and an evening of soldering. No programming:
+the firmware is installed from the browser. The drawings below are exact; follow them.
 
-- ESP32-S3 N16R8 DevKitC-1, wide clone (YD-ESP32-S3 layout: pin rows 25.4 mm apart, IN-OUT pads)
-- two MAX98357A I2S amplifier boards, a CQRobot 3 W 4 Ω speaker, two PJ-392 3.5 mm sockets
-- the printed box in `enclosure/`
+### 1. What you need
 
-| Signal | ESP32-S3 pin |
+| Part | Get this | Example |
+|---|---|---|
+| ESP32-S3 board | **ESP32-S3 N16R8 "DevKitC-1" wide clone** with two USB-C sockets and 2 × 22 pins, the rows **25.4 mm apart** (10 holes on a breadboard), with **IN-OUT pads**. Layout of the VCC-GND *YD-ESP32-S3*. The narrower original Espressif board does not fit the box. | [Amazon.se search](https://www.amazon.se/s?k=ESP32-S3+N16R8+DevKitC-1) |
+| 2 × amplifier | MAX98357A I2S breakout, 17.8 × 19.3 mm, 7-pin header (LRC, BCLK, DIN, GAIN, SD, GND, Vin) | [3-pack, Amazon.se](https://www.amazon.se/dp/B0F21T7Q3P) |
+| Speaker | CQRobot 3 W 4 Ω enclosed speaker, 70 × 31 × 16 mm, four corner holes | [Pair, Amazon.de](https://www.amazon.de/dp/B0822XCPT8) |
+| 2 × 3.5 mm socket | PJ-392 stereo panel socket with nut (6 mm hole) | [Amazon.se search](https://www.amazon.se/s?k=PJ-392+3.5mm) |
+| 4 × threaded insert | ruthex RX-M3x5.7 heat-set insert | [100-pack, Amazon.se](https://www.amazon.se/dp/B08BCRZZS3) |
+| 4 × screw | M3 × 8, head at most 6 mm across | any hardware store |
+| Resistor | 220 Ω, ¼ W (for the headphones) | |
+| Wires | 10 female–female Dupont jumper wires, about 10 cm (5 per amplifier), plus thin hook-up wire for the sockets | |
+| Foam | 1 mm foam tape (four small pads) and a 0.5 mm foam pad | |
+| Feet | 4 stick-on feet, 10 mm | |
+| Filament | PLA or PETG for the box; clear or white for the light lens | |
+
+You also need your key or paddle with a 3.5 mm **stereo** (three-contact) plug, a USB-C **data** cable
+and a USB power supply. For the PHONES socket use ordinary passive stereo headphones only: it is a
+floating amplifier output, so never connect it to a computer's input or to powered speakers.
+
+**Tools:** soldering iron with a heat-set insert tip, multimeter, flush cutters, heat-shrink tubing,
+hot glue, a computer with Chrome or Edge.
+
+
+### 2. Print the box
+
+Files are in [`enclosure/stl`](enclosure/stl):
+
+| File | How to print |
 |---|---|
-| Key jack tip (straight key, or the dit paddle) | GPIO4 (J1-4) |
-| Key jack ring (the dah paddle) | GPIO5 (J1-5) |
-| Key jack sleeve | GND |
-| Speaker amplifier BCLK / LRC / DIN | GPIO15 / GPIO16 / GPIO17 |
-| Headphone amplifier BCLK / LRC / DIN | GPIO12 / GPIO13 / GPIO14 |
-| Both amplifiers Vin | 5Vin (J1-21), with the IN-OUT pads bridged |
+| `fjarrnyckel-base.stl` | as it lies, opening up, no supports |
+| `fjarrnyckel-print_lid.stl` | already upside down (flat top on the bed), no supports |
+| `fjarrnyckel-lens.stl` | flat, clear or white filament |
+| `fjarrnyckel-coupon.stl` | **print this first** (about 20 minutes): a board saddle, an amplifier stand, an insert post and a speaker pin. Try your own board, an amplifier with its plugs, an insert and the speaker in it before you print the box. |
 
-## Getting started
+Settings: 0.2 mm layers, **4 walls** (the insert posts then come out nearly solid), 5 top and bottom
+layers, 20–25 % gyroid infill; the lens at 100 %. Remove any strings from the grille slots and the USB
+opening.
 
-- **Receiver:** [Installing the receiver on a Raspberry Pi](docs/receiver-raspberry-pi.md)
-- **Box:** build `firmware/` with PlatformIO (`pio run`) and flash it. The box
-  then starts its own Wi-Fi network called `Fjarrnyckel-XXXX`; join it and the
-  setup page opens.
+### 3. Set the inserts
+
+Put the lid upside down. Heat each of the four brass inserts with the iron and press it straight down
+into a post under the lid until it is flush. Let it cool before you move on.
+
+
+### 4. Prepare and test the ESP32 board
+
+![The ESP32 board: pins used](docs/build/board-pins.png)
+
+**Bridge the IN-OUT pads.** On this board the 5Vin pin (J1 pin 21) only gives out the USB 5 V when the
+two small pads marked IN-OUT are joined. Melt a small blob of solder across them.
+
+
+**Check it:** plug USB in and measure between 5Vin (J1-21) and GND (J1-22). You should see about 5 V. With
+the pads open you see about 0 V.
+
+**Install the firmware now**, before anything is soldered, so you know the board works:
+
+1. Download `fjarrnyckel-usb.bin` from the
+   [latest release](https://github.com/sa3lej/fjarrnyckel/releases/latest).
+2. Connect the board with a USB **data** cable to the USB-C socket marked **COM** (or UART). If no serial
+   port appears on the computer, try another cable, or install the CH343 USB driver.
+3. Open the [Espressif web flasher](https://espressif.github.io/esptool-js/) in Chrome or Edge and press
+   **Connect**; choose the board's serial port.
+4. Under *Flash address* type **0x0**, choose `fjarrnyckel-usb.bin`, and press **Program**.
+   If it hangs on *Connecting*: hold the board's **BOOT** button, press and release **RST**, release
+   BOOT, and press Connect again.
+5. When it is done, unplug and plug in again. The light on the board shows that the box is starting, and a
+   Wi-Fi network called **Fjarrnyckel-XXXX** appears.
+
+You only do this once. Later updates come from the box's own page: **Box → Software → Look for
+updates**. (For *Install from a file…* use `fjarrnyckel-update.bin`; `fjarrnyckel-usb.bin` is only for this
+first install.)
+
+### 5. Wire it
+
+Everything uses the board's left row **J1** (counted from the top with the USB sockets at the bottom and
+the components facing you), plus two GND pins at the bottom of the right row **J2**.
+
+![What goes where](docs/build/wiring-chart.png)
+
+**The board.** The pins point down into the box, so solder the wires to the tops of the pins, on the
+component side. Keep them short and leave them on the J1 side: in the box that row faces the speaker.
+
+
+**Always unplug USB before you solder.**
+
+**The amplifiers.** Before soldering, dry-fit: stand the amplifier in its two grooved posts. The 7-pin row
+runs along the bottom edge, and the pins must stick out on the side that faces the speaker, because that
+is where the plugs go. Then solder the straight 7-pin header to each amplifier. Leave **GAIN** and **SD**
+unconnected. Push Dupont plugs onto the five pins you use (LRC, BCLK, DIN, GND, Vin), cut the other ends and solder them to the board as
+in the chart. Then solder the outputs on the opposite edge:
+
+- speaker amplifier: **+** to the speaker's red wire, **−** to its black wire;
+- headphone amplifier: **+** through the 220 Ω resistor to the PHONES socket's **tip**, with tip and
+  **ring** joined by a short wire so you hear it in both ears; **−** to the PHONES socket's **sleeve**.
+
+Neither amplifier's − is ground. Never connect the PHONES sleeve to GND or to the KEY socket, and never
+join the two amplifiers' − wires.
+
+**The sockets.** Fit both sockets in the back wall with their nuts first (KEY on the right, PHONES on the
+left, seen from behind). A PJ-392 has two lugs, for the **tip** and the **ring**; the **sleeve** is its
+threaded metal body, so solder the sleeve wire to the body (or to a solder tag under the nut). Find out
+which lug is which with the multimeter and a plug: the tip lug connects to the point of the plug, the ring
+lug to the band behind it, the body to the long part nearest the cable. Then solder:
+
+- KEY: tip to J1-4 (GPIO4), ring to J1-5 (GPIO5), sleeve to J2-21 (GND);
+- PHONES: as above, from the headphone amplifier.
+
+Cover every joint with heat-shrink.
+
+
+### 6. Put it together
+
+![Where everything goes](docs/build/layout.png)
+
+1. Slide each amplifier down into its two grooved posts with the plugs facing the speaker: the speaker
+   amplifier at the front, the headphone amplifier at the back, next to the sockets.
+2. Set the ESP32 board on its two saddles with the USB sockets in the opening in the back wall. The black
+   plastic strips of the pins rest on the saddles.
+3. Lay the wires flat on the floor between the board and the amplifiers.
+4. Put the speaker on its two ribs, cone up, over the wires. Lead its cable round the end of a rib.
+5. A dab of hot glue over each amplifier's row of plugs keeps them from working loose (a loose plug
+   crackles).
+
+
+**Check before power.** With USB unplugged, use the multimeter's beep test:
+
+- 5Vin (J1-21) to GND (J1-22): **no** beep (no short);
+- each wire against its neighbours on the board: no beep;
+- PHONES sleeve to GND and to the KEY sleeve: no beep;
+- every wire in the chart from end to end: beep.
+
+**Then power it.** Plug USB in with the key released. You hear two short tones (low, then high) and the
+light comes on. Press a straight key: you hear the sidetone in the speaker, and in headphones too (each has
+its own volume on the page). A new box starts as *Straight key*; for a paddle, set **Key → Key type →
+Paddle**. The tip is dit and the ring is dah; *Paddle sides* swaps them. Unplug USB again before you
+close the box.
+
+### 7. Close it
+
+1. Stick a small piece of 1 mm foam tape on each of the four pads around the speaker frame inside the
+   lid, and the 0.5 mm foam pad on the end of the short post that rests on the board's metal can.
+2. Drop the lens into the light window from above; a tiny drop of glue at its edge keeps it in.
+3. Lower the lid straight down: the four small pins find the speaker's corner holes.
+4. Turn the box over and fit the four M3 × 8 screws. Stop as soon as they are snug.
+5. Stick the four feet into the round seats underneath.
+
+
+### 8. Start it
+
+1. On your phone or computer, join the Wi-Fi network **Fjarrnyckel-XXXX**. The box's page opens by itself;
+   if it does not, browse to **http://192.168.4.1**.
+2. Under **Connection → Wi-Fi**, choose your home network, type its password and press **Connect**. Then
+   put your phone or computer back on your home network and open **http://fjarrnyckel.local** (or the
+   address the page showed). The setup network switches itself off a minute after the box has joined.
+3. Set up the computer by the radio: [Installing the receiver on a Raspberry Pi](docs/receiver-raspberry-pi.md).
+   Then, under **Connection → Radio link**, enter the **Receiver address** and the **Shared key**, leave
+   **Port** at 7373 and press **Save**. For the first test put the radio in CW with break-in off, and listen
+   to the radio's own sidetone before you transmit.
+4. To key the radio from anywhere: put the computer by the radio and the box on the same Tailscale
+   network. On the box, **Connection → Tailscale → Connect to Tailscale**, then **Sign in to Tailscale**.
+   Use the receiver's Tailscale name as the receiver address and leave **Relay** on *Automatic*.
+5. Under **Box → Backup**, type a passphrase and press **Download backup**. Keep the file and the
+   passphrase: you need both to restore it.
+
+For practice sites on a computer, see [Training with practice sites](#training-with-practice-sites).
+
+**What the light means**
+
+| Light | Meaning |
+|---|---|
+| blue, blinking | the setup network is up: join it and set up Wi-Fi |
+| red | no Wi-Fi |
+| amber | Wi-Fi is there, the radio is not ready yet |
+| green | ready: the key goes to the radio (bright while keyed) |
+| turquoise | training mode: the key goes to the computer on USB |
+| violet, blinking | an update is being installed |
+| white | service mode |
+
+You hear "R" in Morse when the box has been ready to key the radio for a second, and two low tones when it
+has not been for three seconds. The tones wait until the key is up, and can be switched off under
+**Box → Signals**.
 
 ## Training with practice sites
 
@@ -77,19 +241,9 @@ adapters do, and nothing is sent to the radio:
 With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
 **The two paddles** the site does the keying.
 
-## Wiring as built
+## Tailscale relay region
 
-| Part | Connection |
-|---|---|
-| Key socket (3.5 mm stereo) | tip GPIO 4, ring GPIO 5, sleeve GND |
-| Speaker amplifier (MAX98357A) | BCLK GPIO 15, LRC GPIO 16, DIN GPIO 17, Vin 5V, GND |
-| Headphone amplifier (MAX98357A) | BCLK GPIO 12, LRC GPIO 13, DIN GPIO 14, Vin 5V, GND, GAIN left open |
-| Headphone socket | amplifier + through 220 Ω to tip and ring joined; amplifier − to the sleeve, which must not touch GND |
-
-Both amplifiers run from the board's 5V pin. On 3.3 V the headphone amplifier distorted at higher volume.
-On some clone boards the 5V pin only carries USB power once the IN-OUT pads are bridged.
-
-**Tailscale relay region.** The box's Tailscale client keeps one relay connection, to its own home region.
+The box's Tailscale client keeps one relay connection, to its own home region.
 It has to be the home region of the computer by the radio; with different regions the box cannot reach the
 receiver until the receiver happens to contact the box. Left on *Automatic*, the box reads the receiver's
 region from the tailnet and moves there, restarting its Tailscale connection once. The region can also be
