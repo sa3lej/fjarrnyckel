@@ -31,7 +31,7 @@ Work in progress. Honest state of each part:
 |---|---|
 | Receiver (`receiver/`) | Working. Tested on a Raspberry Pi 4 with an IC-7300 and wfview. |
 | Keying protocol (CWL2) | Working. Covered by tests, including loss and jitter. |
-| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB is written but not yet tried on hardware. |
+| Box firmware (`firmware/`) | Working on hardware: keyer (straight key and iambic A/B), sidetone in speaker and headphones, keying the radio over Wi-Fi or Tailscale, setup page. Training over USB: MIDI works with Vail (first test 2026-11-24); the keyboard mode is not yet tried. |
 | Tailscale in the box | In the firmware from 0.3.0 (MicroLink), with sign-in from the setup page. |
 | Updates over Wi-Fi | From 0.4.0: the box finds new releases and installs them from its page. |
 | Password on the setup page | From 0.5.0: optional, off until you set one. |
