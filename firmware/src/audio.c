@@ -15,7 +15,8 @@ static volatile int beep_hz, beep_blocks;
 static void audio_task(void *arg) {
   float phase = 0, gain = 0;
   const float ramp = 1.0f / (0.005f * RATE);   // 5 ms fade in and out, so the tone does not click
-  int16_t frames[BLOCK * 2], hp[BLOCK * 2];
+  int16_t frames[BLOCK * 2];
+  int32_t hp[BLOCK * 2];   // 32-bit samples: at headphone levels 16 bits would leave only a few hundred steps, which sounds gritty
   for (;;) {
     bool beeping = beep_blocks > 0;
     if (beeping) beep_blocks--;
@@ -28,13 +29,14 @@ static void audio_task(void *arg) {
       phase += 2 * (float)M_PI * hz / RATE; if (phase > 2 * (float)M_PI) phase -= 2 * (float)M_PI;
       float v = sinf(phase) * gain * 32767;
       frames[2 * i] = frames[2 * i + 1] = (int16_t)(v * level);   // same in both channels: the amplifier plays their average
-      hp[2 * i] = hp[2 * i + 1] = (int16_t)(v * hp_level);
+      hp[2 * i] = hp[2 * i + 1] = (int32_t)(v * hp_level * 65536.0f);
     }
     size_t written;
     i2s_channel_write(tx, frames, sizeof frames, &written, portMAX_DELAY);
-    // The headphone output runs on the same clock, so it is ready when the speaker output is. It never waits
-    // longer than two blocks: a fault there must not hold up the speaker.
-    if (tx_hp) i2s_channel_write(tx_hp, hp, sizeof hp, &written, pdMS_TO_TICKS(4));
+    // The headphone output runs on the same clock as the speaker output, so it takes a block whenever that one
+    // does. It gets ten blocks' time before a block is given up: long enough never to drop one in normal running
+    // (a dropped block is a click), short enough that a fault there cannot stop the speaker.
+    if (tx_hp) i2s_channel_write(tx_hp, hp, sizeof hp, &written, pdMS_TO_TICKS(20));
   }
 }
 
@@ -54,6 +56,7 @@ void audio_start(void) {
   i2s_chan_config_t chan_hp = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_1, I2S_ROLE_MASTER);
   chan_hp.dma_desc_num = 4; chan_hp.dma_frame_num = BLOCK; chan_hp.auto_clear = true;
   cfg.gpio_cfg.bclk = PIN_HP_BCLK; cfg.gpio_cfg.ws = PIN_HP_LRC; cfg.gpio_cfg.dout = PIN_HP_DIN;
+  cfg.slot_cfg = (i2s_std_slot_config_t)I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_STEREO);
   if (i2s_new_channel(&chan_hp, &tx_hp, NULL) != ESP_OK || i2s_channel_init_std_mode(tx_hp, &cfg) != ESP_OK || i2s_channel_enable(tx_hp) != ESP_OK) tx_hp = NULL;
   xTaskCreatePinnedToCore(audio_task, "audio", 4096, NULL, 20, NULL, 1);
 }
