@@ -136,6 +136,15 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 
 <h2 data-t="key"></h2>
 <div class="card">
+ <label data-t="targetL"></label>
+ <div class="seg" id="target"><button type="button" data-v="0" data-t="tRadio"></button><button type="button" data-v="1" data-t="tComputer"></button></div>
+ <div id="trainBox" hidden>
+  <div class="mini" style="margin-top:.8rem"><span class="lamp" id="usbLamp"></span><div><div id="usbState" class="strong"></div><div id="usbDetail" class="sub"></div></div></div>
+  <div id="rawBox"><label data-t="rawL" style="margin-top:.9rem"></label>
+  <div class="seg" id="usbRaw"><button type="button" data-v="0" data-t="rawKeyed"></button><button type="button" data-v="1" data-t="rawPaddles"></button></div>
+  <p class="hint" id="rawHint"></p></div>
+ </div>
+ <label data-t="keyTypeL" style="margin-top:1rem"></label>
  <div class="seg" id="keyType"><button type="button" data-v="0" data-t="straight"></button><button type="button" data-v="1" data-t="paddle"></button></div>
  <div id="paddleBox">
   <label for="wpm"><span data-t="speed"></span><b><span id="wpmV"></span> WPM</b></label>
@@ -206,6 +215,10 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  tsOffS:"Off",tsNoWifi:"Waiting for Wi-Fi",tsCon:"Connecting to Tailscale…",tsNeed:"Sign in to add the box",tsNeedD:"Only needed once. The box remembers it.",tsLogin:"Sign in to Tailscale",tsLoginHint:"Opens Tailscale's sign-in page. This device needs internet access.",
  tsOk:"Connected to Tailscale",tsOkD:"The box's Tailscale address: {ip}",tsFail:"Tailscale did not accept the box",tsFailD:"The key may have expired, or the box was removed from your tailnet. Start over to sign in again.",tsErr:"Tailscale could not start",tsErrD:"The box tries again by itself.",tsCrash:"Switched off: the box restarted while Tailscale was starting.",
  tsOff:"Switch off",tsForget:"Start over",tsForgetAsk:"Erase the box's Tailscale sign-in? It then has to be added again.",lNoTs:"Waiting for Tailscale",lNoTsD:"The receiver's address is on Tailscale.",via:"through Tailscale",
+ targetL:"The key goes to",tRadio:"The radio",tComputer:"The computer (training)",keyTypeL:"Key type",
+ usbOn:"The computer sees the box as a key",usbOnD:"Open a practice site, for example VBand, Vail or Morse Code World, and send.",usbMidi:"A site is using the box over MIDI",usbOff:"Not connected to a computer",usbOffD:"Run a cable from the box's port marked USB to the computer.",
+ rawL:"What the site gets",rawKeyed:"Finished keying",rawPaddles:"The two paddles",rawHintK:"The box's own keyer and sidetone, as on the air. Set the site to straight key.",rawHintP:"Left Ctrl is dit, right Ctrl is dah. The site makes the elements and the tone; the box is silent.",
+ trainNote:"Training: the key does not go to the radio.",
  signals:"Signals",on:"On",off:"Off",ledL:"Status light",ledHint:"Green: ready. Amber: the radio is not ready. Red: no Wi-Fi. Blue, blinking: the setup network is up.",tonesL:"Status tones",tonesHint:"The letter R in Morse when keying comes on, two low tones when it goes off.",
  signedY:"signed",signedN:"not signed",svcOn:"Service mode until the box restarts: firmware that is not signed can be installed.",
  protect:"Protection",pwOffS:"No password",pwOffD:"Anyone on the same network can open this page and change the settings.",pwOnS:"The page asks for a password",pwNew:"Password for this page",pwChange:"New password",pwHint:"If you forget it: hold the key down while plugging the box in, and let go after the first beep (five seconds). That removes the password.",pwSet:"Switch on",pwSetChange:"Change password",pwOff:"Remove the password",pwOffAsk:"Remove the password? The page is then open to anyone on the network.",
@@ -228,6 +241,10 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  tsOffS:"Avstängt",tsNoWifi:"Väntar på Wi-Fi",tsCon:"Ansluter till Tailscale…",tsNeed:"Logga in för att lägga till lådan",tsNeedD:"Behövs bara en gång. Lådan kommer ihåg det.",tsLogin:"Logga in på Tailscale",tsLoginHint:"Öppnar Tailscales inloggningssida. Den här enheten behöver internet.",
  tsOk:"Ansluten till Tailscale",tsOkD:"Lådans Tailscale-adress: {ip}",tsFail:"Tailscale godtog inte lådan",tsFailD:"Nyckeln kan ha gått ut, eller så har lådan tagits bort ur ditt tailnet. Börja om för att logga in igen.",tsErr:"Tailscale kunde inte starta",tsErrD:"Lådan försöker igen av sig själv.",tsCrash:"Avstängt: lådan startade om när Tailscale skulle starta.",
  tsOff:"Stäng av",tsForget:"Börja om",tsForgetAsk:"Radera lådans Tailscale-inloggning? Den måste sedan läggas till igen.",lNoTs:"Väntar på Tailscale",lNoTsD:"Mottagarens adress ligger på Tailscale.",via:"via Tailscale",
+ targetL:"Nyckeln går till",tRadio:"Radion",tComputer:"Datorn (träning)",keyTypeL:"Typ av nyckel",
+ usbOn:"Datorn ser lådan som en nyckel",usbOnD:"Öppna en övningssida, till exempel VBand, Vail eller Morse Code World, och sänd.",usbMidi:"En sida använder lådan via MIDI",usbOff:"Inte ansluten till en dator",usbOffD:"Dra en kabel från lådans port märkt USB till datorn.",
+ rawL:"Vad sidan får",rawKeyed:"Färdig nyckling",rawPaddles:"De två paddlarna",rawHintK:"Lådans egen nycklare och medhörning, som i luften. Ställ sidan på rak nyckel.",rawHintP:"Vänster Ctrl är kort, höger Ctrl är lång. Sidan gör tecknen och tonen; lådan är tyst.",
+ trainNote:"Träning: nyckeln går inte till radion.",
  signals:"Signaler",on:"På",off:"Av",ledL:"Statuslampa",ledHint:"Grön: klar. Gul: radion är inte redo. Röd: inget Wi-Fi. Blå, blinkande: inställningsnätverket är igång.",tonesL:"Statustoner",tonesHint:"Bokstaven R i morse när nycklingen slås på, två låga toner när den slås av.",
  signedY:"signerad",signedN:"inte signerad",svcOn:"Serviceläge tills lådan startar om: programvara som inte är signerad kan installeras.",
  protect:"Skydd",pwOffS:"Inget lösenord",pwOffD:"Alla på samma nätverk kan öppna sidan och ändra inställningarna.",pwOnS:"Sidan kräver lösenord",pwNew:"Lösenord för sidan",pwChange:"Nytt lösenord",pwHint:"Om du glömmer det: håll nyckeln nedtryckt när lådan kopplas in och släpp efter första pipet (fem sekunder). Då tas lösenordet bort.",pwSet:"Slå på",pwSetChange:"Byt lösenord",pwOff:"Ta bort lösenordet",pwOffAsk:"Ta bort lösenordet? Sidan är då öppen för alla på nätverket.",
@@ -239,7 +256,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  r:{"network not found":"Nätverket hittades inte.","wrong password":"Lösenordet godtogs inte.","could not connect":"Nätverket släppte inte in lådan."},sLost:"Ingen kontakt med lådan",dLost:"Om den just anslutit till ditt Wi-Fi: koppla den här enheten till samma nätverk."}};
 const $=id=>document.getElementById(id);
 let W={view:"",ssid:"",open:false,manual:false,since:0,misses:0};
-let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0,iambic:1,led:1,tones:1};
+let L=localStorage.fnLang||((navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en"),S=null,loaded=false,scanState="scan",cur={keyType:0,swap:0,iambic:1,led:1,tones:1,target:0,usbRaw:0};
 const t=k=>T[L][k];
 const post=(u,d)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(d)});
 function texts(){document.documentElement.lang=L;document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t(e.dataset.t));
@@ -252,6 +269,7 @@ function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail"
  const mhz=S.freq?(S.freq/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:3,maximumFractionDigits:3})+" MHz":"";
  const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",S.linkTailscale?t("via"):"",(S.late||S.lost)?t("lateLost").replace("{a}",S.late).replace("{b}",S.lost):""].filter(x=>x).join(" · ");
  const set=(c,a,b)=>{lamp.className="lamp "+c;st.textContent=t(a);d.textContent=b||""};
+ if(S.target==1&&(S.link=="ready"||S.link=="waiting")){set("busy","trainNote","");return}
  if(S.link=="ready")set("ok","lReady",extra);else if(S.link=="waiting")S.rigValid&&!S.cw?set("busy","lWaitCw",t("lWaitCwD")):set("busy","lWait",extra);
  else if(S.link=="no-answer")set("bad","lNoAnswer",t("lNoAnswerD"));else if(S.link=="not-found")set("bad","lNotFound",t("lNotFoundD"));
  else if(S.link=="no-tailscale")set("busy","lNoTs",t("lNoTsD"));else if(S.link=="no-wifi")set("","lNoWifi","");else set("","lOff",t("lOffD"))}
@@ -274,19 +292,21 @@ function paintUp(){const lamp=$("upLamp"),set=(c,a,b)=>{lamp.className="lamp "+c
 let locked=false;
 function paintPw(){$("lock").hidden=!locked;$("app").hidden=locked;const on=S&&S.lock;$("pwLamp").className="lamp "+(on?"ok":"");
  $("pwState").textContent=t(on?"pwOnS":"pwOffS");$("pwDetail").textContent=on?"":t("pwOffD");$("pwLabel").textContent=t(on?"pwChange":"pwNew");$("pwSet").textContent=t(on?"pwSetChange":"pwSet");$("pwOff").hidden=!on}
-function paint(){paintPw();if(locked)return;paintLink();paintTs();paintUp();const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
+function paintUsb(){$("trainBox").hidden=cur.target!=1;$("rawBox").hidden=cur.keyType!=1;$("rawHint").textContent=t(cur.usbRaw==1?"rawHintP":"rawHintK");
+ const on=S&&S.usb;$("usbLamp").className="lamp "+(on?"ok":"");$("usbState").textContent=t(on?(S.usbMidi?"usbMidi":"usbOn"):"usbOff");$("usbDetail").textContent=t(on?"usbOnD":"usbOffD")}
+function paint(){paintPw();if(locked)return;paintUsb();paintLink();paintTs();paintUp();const lamp=$("lamp");if(!S){lamp.className="lamp bad";$("state").textContent=t("sLost");$("detail").textContent=t("dLost");return}
  const f=(k)=>t(k).replace("{s}",S.ssid).replace("{ip}",S.ip);
  if(S.wifi=="connected"){lamp.className="lamp ok";$("state").textContent=f("sOk");$("detail").textContent=f("dOk")+(S.setupNetwork?t("dAp"):"")}
  else if(S.wifi=="connecting"){lamp.className="lamp busy";$("state").textContent=f("sCon");$("detail").textContent=""}
  else if(S.wifi=="failed"){lamp.className="lamp bad";$("state").textContent=f("sBad");$("detail").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
  else{lamp.className="lamp";$("state").textContent=t("sNo");$("detail").textContent=t("dNo")}}
 function show(){for(const k of["wpm","tone","volume"]){const e=$(k);$(k+"V").textContent=e.value;e.style.setProperty("--fill",(e.value-e.min)/(e.max-e.min)*100+"%")}
- for(const k of["keyType","swap","iambic","led","tones"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
- $("paddleBox").hidden=cur.keyType!=1;$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
+ for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
+ $("paddleBox").hidden=cur.keyType!=1;paintUsb();$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
+ if(!loaded){loaded=true;for(const k of["wpm","tone","volume"])$(k).value=S[k];cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show()}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 for(const k of["wpm","tone","volume"]){$(k).oninput=()=>{show();post("/api/settings",{[k]:$(k).value}).catch(()=>{})};$(k).onchange=()=>post("/api/settings",{[k]:$(k).value,save:1}).catch(()=>{})}
-for(const k of["keyType","swap","iambic","led","tones"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
+for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
 $("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};

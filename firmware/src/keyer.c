@@ -9,10 +9,12 @@
 
 volatile bool key_down;
 
-static void set_key(bool down) {
-  if (down == key_down) return;
-  key_down = down;
-  link_edge(esp_timer_get_time(), down);   // the time goes with the edge, so the receiver can replay it exactly
+// The sidetone follows key_down. The radio gets every change with its time, so the receiver can replay it exactly.
+static bool radio_down;
+static void to_radio(bool down) {
+  if (down == radio_down) return;
+  radio_down = down;
+  link_edge(esp_timer_get_time(), down);
 }
 
 // A contact counts as changed once it has read the same for 3 ms; that hides contact bounce.
@@ -32,9 +34,17 @@ static void keyer_task(void *arg) {
     vTaskDelayUntil(&tick, 1);
     bool t = settle(&tip, gpio_get_level(PIN_TIP) == 0), r = settle(&ring, gpio_get_level(PIN_RING) == 0);
     if (!armed) { if (t || r) continue; armed = true; }
-    if (settings.key_type == 0) { set_key(t); iambic = (iambic_t){0}; continue; }
-    bool dit = settings.swap ? r : t, dah = settings.swap ? t : r;
-    set_key(iambic_step(&iambic, dit, dah, esp_timer_get_time(), 1200000 / (settings.wpm ? settings.wpm : 20), settings.iambic_b));
+    bool training = settings.key_target == 1, paddle = settings.key_type != 0;
+    bool dit = settings.swap ? r : t, dah = settings.swap ? t : r, keyed;
+    if (!paddle) { keyed = t; iambic = (iambic_t){0}; }
+    else keyed = iambic_step(&iambic, dit, dah, esp_timer_get_time(), 1200000 / (training ? usb_wpm() : settings.wpm ? settings.wpm : 20),
+                             training ? usb_iambic() : settings.iambic_b);
+    if (!training) { key_down = keyed; to_radio(keyed); usb_key(false, false, false); continue; }
+    // Training: nothing goes to the radio. With raw paddles the site makes the elements and the tone.
+    to_radio(false);
+    bool raw = paddle && usb_raw();
+    key_down = raw ? false : keyed;
+    usb_key(raw && dit, raw && dah, !raw && keyed);
   }
 }
 

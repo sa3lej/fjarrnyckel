@@ -2,7 +2,14 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # Console on the chip's own USB port (the one marked USB).
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# The console is on the UART port; the USB port is a keyboard and MIDI key for practice sites (usbkey.c).
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+CONFIG_TINYUSB_HID_COUNT=1
+CONFIG_TINYUSB_MIDI_COUNT=1
+CONFIG_TINYUSB_DESC_MANUFACTURER_STRING="SA3LEJ"
+CONFIG_TINYUSB_DESC_PRODUCT_STRING="Fjarrnyckel"
+CONFIG_TINYUSB_DESC_SERIAL_STRING="1"
 # 1 ms scheduler tick: the keyer reads the contacts every millisecond.
 CONFIG_FREERTOS_HZ=1000
 # Phones probing for a captive portal send long request headers.

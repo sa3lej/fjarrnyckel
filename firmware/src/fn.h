@@ -32,6 +32,8 @@ typedef struct {
   uint8_t page_hash[32];
   uint8_t led_off;      // 1 = the status light stays dark
   uint8_t tones_off;    // 1 = no tones when keying comes on or goes off
+  uint8_t key_target;   // 0 = the key goes to the radio, 1 = to the computer on the USB port (training)
+  uint8_t usb_raw;      // training with a paddle: 1 = send the two paddles as they are, the site does the keying
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -83,6 +85,15 @@ void *ts_handle(void);                    // the MicroLink handle while the link
 bool ts_is_tailnet_address(uint32_t host_order);
 
 void web_start(void);
+// ---- the USB port as a key for Morse practice sites ----
+void usb_start(void);
+void usb_key(bool dit, bool dah, bool keyed);   // every millisecond: what the computer should see now
+bool usb_connected(void);
+bool usb_midi_mode(void);                 // a site has switched the box from keyboard to MIDI
+bool usb_raw(void);                       // the paddles go out as they are
+int usb_iambic(void);                     // keyer mode and speed to use in training: a MIDI site may ask for its own
+int usb_wpm(void);
+
 // ---- status light and tones, service mode, signatures ----
 void led_start(void);
 void led_show(int r, int g, int b);

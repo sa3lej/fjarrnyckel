@@ -159,6 +159,9 @@ static void update_task(void *arg) {
   { bool ok = firmware_signed(esp_ota_get_running_partition()); update_info_t i = info; i.is_signed = ok; info = i; ESP_LOGI(TAG, "the running firmware is %s", ok ? "signed" : "not signed"); }
   for (;;) {
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(5000));
+    // A new firmware is on trial until it has run for a minute. If it crashes, hangs or is unplugged before
+    // that, the bootloader goes back to the firmware that worked.
+    if (esp_timer_get_time() > 60000000) update_started_ok();
     if (net_state() != NET_CONNECTED) { if (want_check || want_install) { want_check = want_install = false; set_error("could not reach the update server"); } continue; }
     int64_t now = esp_timer_get_time();
     if (want_install) { want_install = false; install(); continue; }

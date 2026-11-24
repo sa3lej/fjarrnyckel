@@ -33,11 +33,12 @@ static void status_task(void *arg) {
   bool told_ready = false; int64_t since = 0; bool was = false;
   for (int n = 0;; n++) {
     vTaskDelay(pdMS_TO_TICKS(50));
-    bool ready = link_info().state == LINK_READY, blink = (n / 8) % 2;
+    bool ready = link_info().state == LINK_READY && settings.key_target == 0, blink = (n / 8) % 2;
     if (settings.led_off) led_show(0, 0, 0);
     else if (update_info().progress >= 0) blink ? led_show(18, 0, 26) : led_show(0, 0, 0);
     else if (net_ap_name()[0]) blink ? led_show(0, 0, 30) : led_show(0, 0, 0);
     else if (net_state() != NET_CONNECTED) led_show(26, 0, 0);
+    else if (settings.key_target == 1) key_down ? led_show(0, 70, 70) : led_show(0, 16, 18);   // training: turquoise
     else if (ready) key_down ? led_show(0, 90, 0) : led_show(0, 22, 0);
     else if (service_mode()) led_show(20, 20, 20);
     else led_show(26, 14, 0);

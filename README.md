@@ -64,9 +64,23 @@ On some DevKitC-1 clones the 5V pin gives no USB power until the board's
   then starts its own Wi-Fi network called `Fjarrnyckel-XXXX`; join it and the
   setup page opens.
 
+## Training with practice sites
+
+Set **The key goes to** to **The computer** on the box's page and run a cable from the board's port marked
+USB to the computer. The box then shows up as a keyboard and a MIDI device, the way the VBand and Vail
+adapters do, and nothing is sent to the radio:
+
+- keyboard: dit is Left Ctrl, dah is Right Ctrl (VBand, Morse Code World, Morseorama, Lids Anonymous, ...);
+- MIDI: notes 1 and 2 for the paddles, note 0 for finished keying; a site that speaks Vail's MIDI protocol
+  switches the box over by itself.
+
+With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
+**The two paddles** the site does the keying.
+
 ## Updates
 
-The box looks for a new version on its own (after it gets Wi-Fi, then twice a day) and shows it under
+A new version is on trial for its first minute: if it crashes, hangs or loses power before that, the
+box goes back to the version that worked. The box looks for a new version on its own (after it gets Wi-Fi, then twice a day) and shows it under
 Software on its page. Nothing installs until you press the button; settings are kept. A firmware file can
 also be installed from the same place.
 

@@ -9,13 +9,13 @@ void app_main(void) {
   audio_start();
   led_start();
   service_check();
+  usb_start();
   keyer_start();
   audio_beep(500, 120); vTaskDelay(pdMS_TO_TICKS(220)); audio_beep(700, 120);   // power-on signal: low, high
   net_start();
   link_start();
   ts_start();
   web_start();
-  update_started_ok();
   update_start();
   status_start();
   ESP_LOGI("fn", "Fjarrnyckel %s started. Key type: %s", firmware_version(), settings.key_type ? "paddle" : "straight key");
