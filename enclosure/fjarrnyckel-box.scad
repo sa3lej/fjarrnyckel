@@ -9,12 +9,13 @@
 //
 // Parts: base, lid, and a small lens for the status light (print it in a clear or white filament).
 // Print the base as it stands and the lid upside down (flat top on the bed). No supports.
-// Four M3 x 10 self-tapping screws go in from below, so the top has no screws.
+// Four M3 x 8 machine screws go in from below into brass heat-set inserts in the posts under the lid, so
+// the top has no screws. (Set inserts = false to drive M3 x 10 self-tapping screws straight into the posts.)
 //
 // The sizes under "Measure these" are taken from data sheets and typical clone boards.
 // Measure your own parts with calipers and correct them before printing.
 
-part = "assembly";   // assembly | open | base | lid | lens | print_lid
+part = "assembly";   // assembly | open | base | lid | lens | print_lid | cut_post | cut_speaker
 
 $fn = 64;
 
@@ -55,8 +56,11 @@ in_w = 116;          // inside width  (x)
 in_d = 80;           // inside depth  (y)
 in_h = 26;           // inside height (z)
 lip = 3.2;           // depth of the lid's locating lip
-post_d = 7.6;        // screw posts under the lid
-screw_pilot = 2.6;   // M3 self-tapping
+post_d = 8.4;        // screw posts under the lid
+inserts = true;      // brass heat-set inserts for M3 in the ends of the posts
+insert_d = 4.0;      // hole for the insert (M3 inserts are usually 4.6 mm outside, pressed into 4.0)
+insert_l = 6.0;      // depth of that hole (insert length + 0.5)
+screw_pilot = 2.6;   // M3 self-tapping, when inserts = false
 screw_clear = 3.4;
 head_d = 6.4;        // screw head recess in the floor
 head_h = 1.5;
@@ -179,7 +183,10 @@ module lid() {
         translate([spk_x + 1.5, spk_y + 1.5, in_h - 3]) cube([spk_w - 3, spk_l - 3, 4]);
       }
     }
-    for (p = posts) translate([p[0], p[1], -1]) cylinder(d = screw_pilot, h = in_h - 1);
+    for (p = posts) translate([p[0], p[1], -1]) {
+      cylinder(d = inserts ? 3.2 : screw_pilot, h = inserts ? 1 + 0.2 + insert_l + 6 : in_h - 1);   // room for the end of the screw
+      if (inserts) cylinder(d = insert_d, h = 1 + 0.2 + insert_l);
+    }
     // the light window: a narrow well with a ledge near the top that the lens sits on
     hull() {
       translate([led_x, led_y, well_z - 0.01]) slot(led_slot[0] + 1.2, 5.0, 0.01);
@@ -215,6 +222,14 @@ module parts() {
   color("#2f8f3a") translate([amp_x + amp_rim + 5, amp_y + amp_rim + 9, amp_z + 1.6]) cube([8, 7, 8]);
   // speaker
   color("#1b1b1b") translate([spk_x, spk_y, spk_lift]) cube([spk_w, spk_l, spk_h]);
+  // inserts and screws
+  if (inserts) for (p = posts) translate([p[0], p[1], 0]) {
+    color("#c8a24a") translate([0, 0, 0.25]) difference() { cylinder(d = 4.6, h = 5.5); translate([0, 0, -1]) cylinder(d = 2.5, h = 8); }
+    color("#9aa0a6") { translate([0, 0, -floor_t + head_h - 8 + 8]) translate([0, 0, 0]) cylinder(d = 2.9, h = 0.01); translate([0, 0, -floor_t + head_h]) cylinder(d = 2.9, h = 8); translate([0, 0, -floor_t - 0.3]) cylinder(d = 5.6, h = head_h + 0.3); }
+  }
+  // wires from the board to the amplifier and the sockets, through the tunnel under the speaker
+  color("#d9822b") for (i = [0 : 4]) translate([esp_cx + 14, in_d / 2 - 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = amp_x - esp_cx - 12, $fn = 12);
+  color("#3aa655") for (i = [0 : 2]) translate([esp_cx + 14, in_d / 2 + 8 + i * 2.2, 2.2]) rotate([0, 90, 0]) cylinder(d = 1.4, h = jack_x[0] - esp_cx - 14, $fn = 12);
   // sockets
   for (x = jack_x) translate([x, in_d + wall + 2, jack_z]) rotate([90, 0, 0]) {
     color("#b9b9b9") cylinder(d = 6, h = wall + 4);
@@ -228,4 +243,12 @@ else if (part == "lid") lid();
 else if (part == "print_lid") translate([0, in_d, in_h + lid_t]) rotate([180, 0, 0]) lid();
 else if (part == "lens") lens();
 else if (part == "open") { color("#22344f") base(); parts(); }
+else if (part == "cut_post") difference() {      // the box cut through the two left-hand screws
+  union() { color("#22344f") base(); color("#31486b") lid(); parts(); }
+  translate([posts[0][0], -50, -50]) cube([300, 300, 300]);
+}
+else if (part == "cut_speaker") difference() {   // the box cut across the middle, seen from the front
+  union() { color("#22344f") base(); color("#31486b") lid(); parts(); }
+  translate([-50, -300 + in_d / 2 - 4, -50]) cube([300, 300, 300]);
+}
 else { color("#22344f") base(); color("#22344f") lid(); color("#f4ecd8") translate([led_x, led_y, in_h + lid_t - 1.6]) lens(); parts(); }
