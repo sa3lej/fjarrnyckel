@@ -281,6 +281,12 @@ one. Beside it are **CW**, **USB** and **LSB**, a button for each band from 160 
 which starts the radio's antenna tuner (the radio transmits while it tunes). A band button goes to where you
 last were on that band (the page remembers, per browser), or to the band's CW or phone part the first time.
 
+The card fits the radio. The receiver knows which radio wfview is connected to and tells the box: the card
+carries the radio's name, shows the bands that radio covers (an IC-9700 gets 2 m, 70 cm and 23 cm), and leaves
+out **Tune antenna** on a radio without a built-in tuner. For an external tuner that the radio's own TUNER button
+starts, say so when starting the receiver (`--tuner yes`); the receiver cannot find that out by itself. This
+needs receiver version 4; with an older one the card shows 160 to 6 m and the tuner button.
+
 These travel to the receiver as commands in packets of their own. The key's packets, and so the timing of your
 keying, are exactly what they are without them, and the receiver carries a command out away from its keying
 loop. It needs receiver version 3 or later; see the receiver's guide for how to turn it off there. Mode and

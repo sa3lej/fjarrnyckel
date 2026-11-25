@@ -43,6 +43,7 @@ class Client:
         self.repeats = collections.deque()
         self.status = None
         self.rtt = []
+        self.info = None                       # the newest INFO packet: what the radio is and can do
         self.command = 0
         self.command_arg = 0
         self.command_seq = 0
@@ -99,6 +100,9 @@ class Client:
     def on_status(self, data, now):
         status = proto.unpack_status(self.key, data)
         if status is None:
+            info = proto.unpack_info(self.key, data)
+            if info is not None and info.session == self.session:
+                self.info = info
             return None
         self.nonce = status.nonce
         self.status = status

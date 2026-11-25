@@ -99,6 +99,14 @@ the radio port, and the radio transmits while it tunes. Start the receiver with
 `--no-radio-control` if it should do keying only, with wfview as the only way
 to change the radio.
 
+The box's page only offers what the radio has. The tuner button is there for
+radios with a tuner built in (IC-7300, IC-7300MK2, IC-7610 and the IC-7600 to
+IC-7851 family). If yours has an external tuner that the radio's own TUNER
+button starts, add `--tuner yes`; the receiver has no way to see one. Add
+`--tuner no` to take the button away. The band buttons follow the model too:
+160 to 6 m unless the radio is known to cover others (IC-705, IC-7100,
+IC-9700, IC-905).
+
 ## Radios
 
 **So far only the IC-7300 has been tested.** The other radios below are expected to

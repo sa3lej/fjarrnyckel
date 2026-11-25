@@ -62,6 +62,15 @@ COMMAND packet, client to server (36 bytes, tag): something for the radio that i
   arg       4   the mode as its CI-V byte, or the frequency in Hz
   reserved  4
 
+INFO packet, server to client (28 bytes, tag): what the radio is and can do, every two seconds
+
+  magic     4   "CWL2"
+  type      1   4
+  caps      1   CAP_CONTROL: mode and frequency can be set from the box. CAP_TUNER: it has an antenna tuner to start
+  bands     2   one bit per band the radio covers, in the order of BANDS
+  session   4   session the server is running
+  model     16  the radio's model name, e.g. "IC-7300", padded with zero bytes; empty when not known
+
   Keying never waits for a command and never shares a packet or a counter with one: KEY packets are as they
   always were, and the server carries a command out away from its keying loop. The client sends a command at
   once and again every 100 ms for a second, so a lost packet does not lose it; the server carries out a
@@ -80,7 +89,7 @@ MAX_EDGES = 8
 
 # Raised with every receiver change the box should be able to tell apart. The box shows it, and says so when the
 # receiver is older than the one its firmware was made for (CWL2_RECEIVER_LATEST in firmware/src/cwl2.h).
-RECEIVER_VERSION = 3     # 2: CW on request (in the KEY packet, box 0.13.0). 3: COMMAND packets
+RECEIVER_VERSION = 4     # 2: CW on request (in the KEY packet, box 0.13.0). 3: COMMAND packets. 4: INFO packets
 
 TYPE_COMMAND = 3
 CMD_SET_MODE = 1         # arg: the mode as its CI-V byte, one of MODES_SETTABLE
@@ -164,6 +173,34 @@ def unpack_status(key, data):
     if magic != MAGIC or kind != TYPE_STATUS:
         return None
     return Status(flags, mode, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts, version)
+
+
+TYPE_INFO = 4
+CAP_CONTROL = 0x01       # mode and frequency can be set from the box
+CAP_TUNER = 0x02         # the radio has an antenna tuner that CMD_TUNE starts
+BANDS = ("160", "80", "40", "30", "20", "17", "15", "12", "10", "6", "2", "70cm", "23cm")   # bit 0 first
+BANDS_HF6 = 0x03FF       # 160 m to 6 m
+BAND_2M, BAND_70CM, BAND_23CM = 0x0400, 0x0800, 0x1000
+INFO_BODY = struct.Struct("!4sBBHI16s")
+Info = collections.namedtuple("Info", "caps bands session model")
+
+
+def pack_info(key, info):
+    body = INFO_BODY.pack(MAGIC, TYPE_INFO, info.caps & 0xFF, info.bands & 0xFFFF, info.session,
+                          info.model.encode("ascii", "replace")[:16])
+    return body + tag(key, body)
+
+
+def unpack_info(key, data):
+    if len(data) != INFO_BODY.size + TAG_LEN:
+        return None
+    body, received = data[:-TAG_LEN], data[-TAG_LEN:]
+    if not hmac.compare_digest(tag(key, body), received):
+        return None
+    magic, kind, caps, bands, session, model = INFO_BODY.unpack(body)
+    if magic != MAGIC or kind != TYPE_INFO:
+        return None
+    return Info(caps, bands, session, model.split(b"\0")[0].decode("ascii", "replace"))
 
 
 Command = collections.namedtuple("Command", "command command_seq session t_send nonce arg")

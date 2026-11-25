@@ -87,6 +87,19 @@ class CClientTests(unittest.TestCase):
         # The KEY packets around it carry nothing of it, and count on as if it had not been there.
         self.assertEqual((before.command, after.command, after.seq - before.seq), (0, 0, 1))
 
+    def test_the_c_client_reads_what_the_radio_is(self):
+        self.test_a_command_goes_in_its_own_packets_for_a_second()     # builds the tool
+        tool, key = os.path.join(self.dir, "cwl2_command"), "a-test-key-of-enough-length"
+        def read(info, use=key):
+            data = proto.pack_info(use.encode(), info)
+            return subprocess.run([tool, key, data.hex()], capture_output=True, text=True).stdout.split()
+        bands = proto.BAND_2M | proto.BAND_70CM | proto.BAND_23CM
+        self.assertEqual(read(proto.Info(proto.CAP_CONTROL | proto.CAP_TUNER, proto.BANDS_HF6, 0x1234, "IC-7300")),
+                         ["1", "1", "IC-7300", "3", str(proto.BANDS_HF6)])
+        self.assertEqual(read(proto.Info(proto.CAP_CONTROL, bands, 0x1234, "IC-9700")), ["1", "1", "IC-9700", "1", str(bands)])
+        self.assertEqual(read(proto.Info(3, 1, 0x9999, "IC-705"))[:2], ["1", "0"])        # another session's: not taken
+        self.assertEqual(read(proto.Info(3, 1, 0x1234, "IC-705"), "some-other-key-entirely")[:2], ["0", "0"])
+
     def test_the_buffer_the_client_asks_for_is_used(self):
         client, summary = self.run_pair("E", "60")
         self.assertTrue(client["linked"])

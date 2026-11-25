@@ -16,6 +16,13 @@ static void hex(const uint8_t *pkt, size_t n) { for (size_t i = 0; i < n; i++) p
 
 int main(int argc, char **argv) {
   cwl2_t c; cwl2_init(&c, (const uint8_t *)argv[1], strlen(argv[1]), 0x1234);
+  if (argc > 2) {                              // an INFO packet in hex: print what the client makes of it
+    uint8_t in[64]; size_t n = strlen(argv[2]) / 2;
+    for (size_t i = 0; i < n && i < sizeof in; i++) sscanf(argv[2] + 2 * i, "%2hhx", &in[i]);
+    bool ok = cwl2_on_info(&c, in, n);
+    printf("%d %d %s %u %u\n", ok, c.has_info, c.model[0] ? c.model : "-", c.caps, c.bands);
+    return 0;
+  }
   uint8_t pkt[CWL2_MAX_PACKET];
   hex(pkt, cwl2_packet(&c, 1000000, pkt));
   cwl2_command(&c, CWL2_CMD_SET_FREQ, 7030000, 2000000);

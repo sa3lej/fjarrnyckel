@@ -63,7 +63,7 @@ void link_edge(int64_t t_us, bool down) {
   if (task) xTaskNotifyGive(task);         // wake the link at once: the edge goes out without waiting for the next tick
 }
 
-static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; i.delay_ms = 0; i.receiver = 0; } info = i; } }
+static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; i.delay_ms = 0; i.receiver = 0; i.has_radio = false; } info = i; } }
 
 // The receiver is reached either straight over the network (a UDP socket) or through Tailscale.
 typedef struct { int sock; microlink_udp_socket_t *ts; uint32_t ts_ip; uint16_t port; } path_t;
@@ -144,7 +144,7 @@ static void session(uint32_t gen) {
     uint8_t buf[96]; int n;
     while ((n = receive(&path, buf, sizeof buf)) > 0) {
       now = esp_timer_get_time();
-      if (!cwl2_on_status(&client, buf, (size_t)n, (uint64_t)now)) continue;
+      if (!cwl2_on_status(&client, buf, (size_t)n, (uint64_t)now)) { cwl2_on_info(&client, buf, (size_t)n); continue; }
       heard = now;
       const cwl2_status_t *st = &client.status;
       seen_late = st->late; seen_lost = st->lost; seen_counts = true;
@@ -158,7 +158,9 @@ static void session(uint32_t gen) {
         .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL,
         .delay_ms = client.status.delay_ms, .receiver = client.status.receiver, .mode = client.status.mode,
         .k_edges = k_any ? k_edges : 0, .k_late = k_any ? (uint16_t)(st->late - k_base_late) : 0,
-        .k_lost = k_any ? (uint16_t)(st->lost - k_base_lost) : 0, .k_peak_ms = k_peak };
+        .k_lost = k_any ? (uint16_t)(st->lost - k_base_lost) : 0, .k_peak_ms = k_peak,
+        .has_radio = client.has_info, .caps = client.caps, .bands = client.bands };
+      memcpy(i.model, client.model, sizeof i.model);
       info = i;
     }
     if (now - heard > 1000000) set_state(LINK_NO_ANSWER);    // the receiver answers ten times a second when it is there

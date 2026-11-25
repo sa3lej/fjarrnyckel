@@ -96,6 +96,19 @@ bool cwl2_on_status(cwl2_t *c, const uint8_t *data, size_t len, uint64_t now) {
   return true;
 }
 
+bool cwl2_on_info(cwl2_t *c, const uint8_t *data, size_t len) {
+  if (len != CWL2_INFO_LEN) return false;
+  uint8_t mac[32], diff = 0;
+  cwl2_hmac(c->key, c->key_len, data, len - TAG_LEN, mac);
+  for (int i = 0; i < TAG_LEN; i++) diff |= mac[i] ^ data[len - TAG_LEN + i];
+  if (diff || memcmp(data, "CWL2", 4) || data[4] != 4) return false;
+  const uint8_t *p = data + 5;
+  uint8_t caps = *p++; uint16_t bands = (uint16_t)get(&p, 2);
+  if ((uint32_t)get(&p, 4) != c->session) return true;         // meant for another session: nothing to learn
+  c->caps = caps; c->bands = bands; memcpy(c->model, p, 16); c->model[16] = 0; c->has_info = true;
+  return true;
+}
+
 bool cwl2_linked(const cwl2_t *c) {
   return c->has_status && c->status.session == c->session && !(c->status.flags & (CWL2_ST_MUTED | CWL2_ST_NONCE_BAD));
 }

@@ -36,6 +36,12 @@ class Rig:
     def mode_and_freq(self):
         return (0x03 if self.cw else 0x01, 7_018_000)
 
+    model, tuner = "IC-7300", None
+
+    def describe(self):
+        from cwrecv import describe_radio
+        return describe_radio(self.model, self.tuner)
+
     def command(self, command, arg):
         self.commands = getattr(self, "commands", []) + [(command, arg)]
         if command == proto.CMD_SET_MODE:
@@ -458,6 +464,32 @@ class LinkTests(unittest.TestCase):
             heard += world.receiver.on_packet(data, ("client", 1), world.now)
             world.now += 50_000
         self.assertGreaterEqual(len(heard), 15)   # one answer every 100 ms, as without the other client
+
+    def test_the_box_is_told_what_the_radio_is_and_can_do(self):
+        rig = Rig()
+        world = World(rig=rig)
+        world.link_up()
+        info = world.client.info
+        self.assertEqual((info.model, info.caps, info.bands), ("IC-7300", proto.CAP_CONTROL | proto.CAP_TUNER, proto.BANDS_HF6))
+        rig.model = "IC-9700"                     # wfview was switched to another radio: no tuner, other bands
+        world.run(world.now + 3_000_000)
+        info = world.client.info
+        self.assertEqual((info.model, info.caps), ("IC-9700", proto.CAP_CONTROL))
+        self.assertEqual(info.bands, proto.BAND_2M | proto.BAND_70CM | proto.BAND_23CM)
+        world.client.give_command(proto.CMD_TUNE, 0, world.client_time(world.now))
+        world.run(world.now + 1_500_000)
+        self.assertFalse(hasattr(rig, "commands"))        # a tuner it does not have is not started
+        rig.tuner = "yes"                         # the owner says an external tuner is connected
+        world.run(world.now + 3_000_000)
+        self.assertTrue(world.client.info.caps & proto.CAP_TUNER)
+        world.client.give_command(proto.CMD_TUNE, 0, world.client_time(world.now))
+        world.run(world.now + 1_500_000)
+        self.assertEqual(rig.commands, [(proto.CMD_TUNE, 0)])
+
+    def test_a_keying_only_receiver_says_so(self):
+        world = World(rig=Rig(), radio_control=False)
+        world.link_up()
+        self.assertEqual(world.client.info.caps, 0)
 
 
 if __name__ == "__main__":

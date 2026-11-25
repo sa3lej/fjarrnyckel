@@ -17,7 +17,7 @@
 
 // The newest receiver version this firmware knows (RECEIVER_VERSION in receiver/cwproto.py). A receiver that
 // reports a lower one, or 0 (from before it had a version), is out of date and the page says so.
-#define CWL2_RECEIVER_LATEST 3
+#define CWL2_RECEIVER_LATEST 4
 
 // Things for the radio that are not keying (receivers from version 3). They travel in packets of their own, so the
 // KEY packets and everything about their timing stay exactly as they are without them.
@@ -25,6 +25,11 @@
 #define CWL2_CMD_SET_FREQ 2          // arg: the frequency in Hz
 #define CWL2_CMD_TUNE     3          // start the antenna tuner; the radio transmits while it tunes
 #define CWL2_COMMAND_LEN  52
+
+// What the receiver tells about the radio every two seconds (receivers from version 4), in a packet of its own.
+#define CWL2_INFO_LEN     44
+#define CWL2_CAP_CONTROL  0x01       // mode and frequency can be set from the box
+#define CWL2_CAP_TUNER    0x02       // the radio has an antenna tuner to start
 
 typedef struct {
   uint8_t flags, mode, receiver;     // receiver: its version, 0 = from before it had one
@@ -44,6 +49,7 @@ typedef struct {
   uint64_t command_until, command_next;
   struct { uint32_t index; uint64_t t; bool down; } edges[64];   // oldest first
   cwl2_status_t status;
+  bool has_info; uint8_t caps; uint16_t bands; char model[17];   // from the newest INFO packet of our session
   int64_t rtt_us;                    // last measured round trip, -1 before the first
 } cwl2_t;
 
@@ -55,6 +61,7 @@ size_t cwl2_command_packet(cwl2_t *c, uint64_t now, uint8_t *out);   // builds i
 bool cwl2_due(cwl2_t *c, uint64_t now);                         // true when a packet should go out
 size_t cwl2_packet(cwl2_t *c, uint64_t now, uint8_t *out);      // builds the next packet, returns its length
 bool cwl2_on_status(cwl2_t *c, const uint8_t *data, size_t len, uint64_t now);
+bool cwl2_on_info(cwl2_t *c, const uint8_t *data, size_t len);
 bool cwl2_linked(const cwl2_t *c);                              // the receiver runs our session and will key
 
 // HMAC-SHA256, supplied by the platform.

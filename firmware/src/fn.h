@@ -95,6 +95,10 @@ typedef struct {
   uint16_t delay_ms;     // the playout buffer the receiver is using right now
   uint8_t receiver;      // the receiver's version, 0 = from before it had one
   uint8_t mode;          // the radio's mode as its CI-V byte (0 LSB, 1 USB, 3 CW, ...), valid with rig_valid
+  bool has_radio;        // the receiver has told what the radio is (receivers from version 4):
+  uint8_t caps;          //   CWL2_CAP_*: what the box may do with it
+  uint16_t bands;        //   one bit per band it covers, 160 m first
+  char model[17];        //   its model name, "" when not known
   // The last stretch of keying (a stretch ends after a minute without a key movement):
   uint32_t k_edges;      // key movements sent to the receiver
   uint16_t k_late, k_lost;   // of those, how many reached it too late, or never

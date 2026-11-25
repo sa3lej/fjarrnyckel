@@ -49,8 +49,26 @@ EXTRA_CAP_US = 500_000     # cap of the adaptive extra delay
 STALE_US = 400_000         # a packet this far behind the best latency is stale
 NONCE_LIFE_US = 5_000_000  # a nonce is current for this long, then previous
 STATUS_EVERY_US = 100_000
+INFO_EVERY_US = 2_000_000  # what the radio is and can do is told this often
 REPORT_QUIET_US = 60_000_000  # a stretch of keying is reported after this long without an edge
 MODES_CW = (0x03, 0x07)    # CI-V mode bytes for CW and CW-R
+
+# What the box's page offers depends on the radio. Both lists are from Icom's specifications of each model.
+# A radio that is not listed is taken to cover 160 to 6 m and to have no tuner; --tuner yes says otherwise,
+# for instance for an external tuner that the radio's TUNER button starts.
+INTERNAL_TUNER = {"IC-7300", "IC-7300MK2", "IC-7610", "IC-7600", "IC-7700", "IC-7800", "IC-7850", "IC-7851"}
+MODEL_BANDS = {
+    "IC-705": proto.BANDS_HF6 | proto.BAND_2M | proto.BAND_70CM,
+    "IC-7100": proto.BANDS_HF6 | proto.BAND_2M | proto.BAND_70CM,
+    "IC-9700": proto.BAND_2M | proto.BAND_70CM | proto.BAND_23CM,
+    "IC-905": proto.BAND_2M | proto.BAND_70CM | proto.BAND_23CM,
+}
+
+
+def describe_radio(model, tuner_given):
+    """(model name, has a tuner to start, bands) for the box's page. tuner_given: "yes", "no" or None."""
+    tuner = tuner_given == "yes" if tuner_given in ("yes", "no") else model in INTERNAL_TUNER
+    return model or "", tuner, MODEL_BANDS.get(model, proto.BANDS_HF6)
 
 
 class Receiver:
@@ -90,6 +108,7 @@ class Receiver:
         self.previous_nonce = 0
         self.nonce_since = None
         self.last_status = None
+        self.last_info = None
         self.status_seq = 0
         self.last_command = None               # cmd_seq of the last COMMAND accepted in this session
         self.last_key_command = None           # the same for a command in a KEY packet (box firmware 0.13.0)
@@ -188,6 +207,7 @@ class Receiver:
             self.session = packet.session
             self.next_idx = (packet.ev_idx0 + len(packet.edges)) & 0xFFFFFFFF   # do not replay its history
             self.last_command = self.last_key_command = None
+            self.last_info = None
             self.muted = True
             self.extra_us = 0
             self.window.clear()
@@ -217,6 +237,9 @@ class Receiver:
             replies.append((self._status(now, nonce_bad=not nonce_ok), sender))
         if not nonce_ok:
             return replies                      # the edges come again in the next packets
+        if self.last_info is None or now - self.last_info >= INFO_EVERY_US:
+            self.last_info = now
+            replies.append((self._info(), sender))
 
         # A command comes in every packet for two seconds; each one is carried out once.
         # Box firmware 0.13.0 asked for CW here, in every KEY packet for two seconds. Newer firmware sends COMMAND packets.
@@ -265,8 +288,20 @@ class Receiver:
             self.last_command = command.command_seq
             self._to_rig(command.command, command.arg)
 
+    def _radio(self):
+        """(caps, model, bands): what the box may do with the radio, and what the radio is."""
+        model, tuner, bands = self.rig.describe() if hasattr(self.rig, "describe") else ("", False, proto.BANDS_HF6)
+        control = self.radio_control and hasattr(self.rig, "command")
+        caps = (proto.CAP_CONTROL if control else 0) | (proto.CAP_TUNER if control and tuner else 0)
+        return caps, model, bands
+
+    def _info(self):
+        caps, model, bands = self._radio()
+        return proto.pack_info(self.key, proto.Info(caps, bands, self.session or 0, model))
+
     def _to_rig(self, command, arg):
-        if self.radio_control and self.rig is not None and hasattr(self.rig, "command"):
+        caps = self._radio()[0]
+        if caps & proto.CAP_CONTROL and (command != proto.CMD_TUNE or caps & proto.CAP_TUNER):
             self.rig.command(command, arg)
 
     def _schedule(self, when, down, now):
@@ -371,10 +406,11 @@ class SerialKey:
     """Keys DTR on the radio's serial port and reads mode and frequency over CI-V on
     the same port. One process owns the port: a second open would raise DTR."""
 
-    def __init__(self, port):
+    def __init__(self, port, tuner=None):
         import threading
 
         import civ
+        self.tuner_given = tuner
         self.civ = civ
         self.name = f"dtr:{port}"
         self.link = civ.open_port(port)
@@ -421,6 +457,9 @@ class SerialKey:
 
     def command(self, command, arg):
         self.todo.append((command, arg))        # carried out by the poll thread, never by the keying loop
+
+    def describe(self):
+        return describe_radio("", self.tuner_given)   # the model is not asked for on a port of our own
 
     def mode_and_freq(self):
         fresh = time.monotonic() - self.seen < 3.0
@@ -474,8 +513,9 @@ class WfviewKey:
     RIG_MODES = {"LSB": 0x00, "USB": 0x01, "AM": 0x02, "CW": 0x03, "RTTY": 0x04, "FM": 0x05,
                  "CWR": 0x07, "RTTYR": 0x08, "PKTLSB": 0x00, "PKTUSB": 0x01, "PKTFM": 0x05}
 
-    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=None, controller=0xE0, usb_port=None):
+    def __init__(self, port, rigctld=("127.0.0.1", 4533), process="wfview", radio=None, controller=0xE0, usb_port=None, tuner=None):
         import threading
+        self.tuner_given = tuner      # --tuner yes/no; None = by the model
         self.radio_given = radio      # --civ-address; None = take it from wfview
         self.radio, self.controller = radio or 0x94, controller
         self.usb_port_given = usb_port  # "A" or "B" to override the port detection
@@ -684,6 +724,9 @@ class WfviewKey:
         self.todo.append((command, arg))        # carried out by the poll thread, never by the keying loop
         self.wake.set()
 
+    def describe(self):
+        return describe_radio(self.model, self.tuner_given)
+
     def cw_mode(self):
         # With a known menu the radio is only ready once the menu is set to DTR;
         # on other radios the operator has set it, so CW mode is enough.
@@ -719,6 +762,9 @@ def main():
     parser.add_argument("--delay-ms", type=float, default=25.0, help="playout delay when the client asks for none")
     parser.add_argument("--link-timeout-ms", type=float, default=300.0)
     parser.add_argument("--max-key-down-ms", type=float, default=5000.0)
+    parser.add_argument("--tuner", choices=["yes", "no"],
+                        help="whether the box may start the radio's antenna tuner. Left out, the radio's model decides: yes for "
+                             "radios with a tuner built in. Say yes for an external tuner that the radio's TUNER button starts")
     parser.add_argument("--no-radio-control", "--no-cw-from-box", action="store_true",
                         help="keying only: never set the radio's mode or frequency or start its tuner when the box asks")
     parser.add_argument("--exit-idle-s", type=float, default=0.0, help="test use: exit after this long without packets")
@@ -728,9 +774,9 @@ def main():
         parser.error("--wfview needs --serial to identify the radio port")
     if args.wfview:
         host, _, rport = args.wfview.rpartition(":")
-        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)), radio=args.civ_address, usb_port=args.usb_port)
+        out = WfviewKey(args.serial, (host or "127.0.0.1", int(rport)), radio=args.civ_address, usb_port=args.usb_port, tuner=args.tuner)
     else:
-        out = SerialKey(args.serial) if args.serial else NullKey()
+        out = SerialKey(args.serial, tuner=args.tuner) if args.serial else NullKey()
     core = Receiver(proto.load_key(args.key), out, delay_ms=args.delay_ms, link_timeout_ms=args.link_timeout_ms,
                     max_key_down_ms=args.max_key_down_ms, rig=out if args.serial else None,
                     radio_control=not args.no_radio_control)
