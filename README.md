@@ -252,16 +252,16 @@ adapters do, and nothing is sent to the radio:
 With **Finished keying** the box's own keyer and sidetone are used and the site sees a straight key. With
 **The two paddles** the site does the keying.
 
-## Radio sound in the headphones
+## Radio sound in the speaker or headphones
 
 On its USB port the box is also a sound card, called **Fjarrnyckel**. Choose it as the audio output in wfview
-(or for the whole computer) and the radio is heard in the box's headphones together with the sidetone, each
-with its own volume (Key → Radio sound from the computer). The sidetone never leaves the box, so it stays
+(or for the whole computer) and the radio is heard in the box together with the sidetone. Like the sidetone, it
+has a volume for the speaker and one for the headphones (Key → Radio sound from the computer); the speaker
+starts at 0, so the radio is in the headphones only until you turn it up. The sidetone never leaves the box, so it stays
 instant; the keying path to the radio is not touched.
 
 The sound card runs at 48 kHz, 16-bit mono. The box follows the computer's clock: it plays the incoming sound a
-few hundredths of a percent faster or slower to keep about 8 ms buffered, so the two clocks never drift apart. The computer's own volume and mute work as usual. The radio sound plays in the
-headphones only, not in the speaker.
+few hundredths of a percent faster or slower to keep about 8 ms buffered, so the two clocks never drift apart. The computer's own volume and mute work as usual.
 
 ## The buffer, and the receiver's version
 

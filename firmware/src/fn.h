@@ -43,6 +43,7 @@ typedef struct {
   uint8_t radio_volume; // sound from the computer (the radio, through wfview) in the headphones, 0-100
   uint8_t led_level;    // status light brightness 1-100, 10 = the original level; 0 (older copies) = 10
   uint8_t link_delay;   // playout buffer asked of the receiver, 10-200 ms; 0 = the receiver's own default (25 ms)
+  uint8_t radio_spk;    // sound from the computer in the speaker, 0-100; 0 = headphones only (and older copies)
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
