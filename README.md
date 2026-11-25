@@ -263,6 +263,17 @@ The sound card runs at 48 kHz, 16-bit mono. The box follows the computer's clock
 few hundredths of a percent faster or slower to keep about 8 ms buffered, so the two clocks never drift apart. The computer's own volume and mute work as usual. The radio sound plays in the
 headphones only, not in the speaker.
 
+## The buffer, and the receiver's version
+
+The receiver holds every key movement for a short, fixed time before it keys the radio; that is what evens
+out the network. The time is set on the box's page (Connection → Radio link → **Buffer**, 10 to 200 ms, 25
+to begin with). Lower is quicker; raise it if the page shows movements arriving late. The page also shows the
+buffer the receiver is using right now, which is longer for a while after late arrivals.
+
+The same card shows the receiver's version, and says so when the receiver is older than the box's firmware
+expects. Update it on the computer by the radio: `git pull` in its `fjarrnyckel` folder, then
+`systemctl --user restart fjarrnyckel-receiver`.
+
 ## Tailscale relay region
 
 The box's Tailscale client keeps one relay connection, to its own home region.
@@ -313,6 +324,9 @@ GitHub Actions builds the firmware and publishes `fjarrnyckel-update.bin` (for t
 ```
 python3 -m unittest discover -s tests
 ```
+
+These include the firmware's own link client (`firmware/src/cwl2.c`) built for the computer and run against the
+real receiver, where there is a C compiler and OpenSSL's headers.
 
 Keyer logic and backup files are also tested in C on the computer:
 

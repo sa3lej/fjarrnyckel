@@ -15,8 +15,12 @@
 #define CWL2_ST_NONCE_BAD 0x20
 #define CWL2_ST_MUTED     0x40       // the receiver is waiting for a word gap
 
+// The newest receiver version this firmware knows (RECEIVER_VERSION in receiver/cwproto.py). A receiver that
+// reports a lower one, or 0 (from before it had a version), is out of date and the page says so.
+#define CWL2_RECEIVER_LATEST 1
+
 typedef struct {
-  uint8_t flags, mode;
+  uint8_t flags, mode, receiver;     // receiver: its version, 0 = from before it had one
   uint32_t session, seq, echo_age, freq_hz;
   uint64_t echo_t, nonce;
   uint16_t delay_ms, late, lost, rx_pkts;

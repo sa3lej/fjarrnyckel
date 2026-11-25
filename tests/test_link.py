@@ -328,6 +328,25 @@ class LinkTests(unittest.TestCase):
         world.run(world.now + 20_000)
         self.assertFalse(world.out.down)
 
+    def test_the_receiver_tells_its_version(self):
+        world = World()
+        world.link_up()
+        self.assertEqual(world.client.status.version, proto.RECEIVER_VERSION)
+        self.assertGreater(proto.RECEIVER_VERSION, 0)
+
+    def test_a_reported_stretch_of_keying_is_let_go(self):
+        world = World()
+        world.link_up()
+        _, end, plan = world.key("TEST")
+        world.run(end + 300_000)
+        report = world.receiver.take_summary()
+        self.assertEqual(report["edges_played"], len(plan))
+        self.assertEqual(world.receiver.played, [])
+        self.assertEqual(world.receiver.take_summary()["edges_played"], 0)
+        _, end, plan = world.key("E")
+        world.run(end + 300_000)
+        self.assertEqual(world.receiver.take_summary()["edges_played"], len(plan))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,7 +66,7 @@ bool cwl2_on_status(cwl2_t *c, const uint8_t *data, size_t len, uint64_t now) {
   if (diff || memcmp(data, "CWL2", 4) || data[4] != 2) return false;
   const uint8_t *p = data + 5;
   cwl2_status_t s;
-  s.flags = *p++; s.mode = *p++; p++;
+  s.flags = *p++; s.mode = *p++; s.receiver = *p++;
   s.session = (uint32_t)get(&p, 4); s.seq = (uint32_t)get(&p, 4); s.echo_t = get(&p, 8); s.echo_age = (uint32_t)get(&p, 4);
   s.nonce = get(&p, 8); s.freq_hz = (uint32_t)get(&p, 4); s.delay_ms = (uint16_t)get(&p, 2);
   s.late = (uint16_t)get(&p, 2); s.lost = (uint16_t)get(&p, 2); s.rx_pkts = (uint16_t)get(&p, 2);

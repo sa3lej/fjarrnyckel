@@ -16,7 +16,6 @@
 #include "class/hid/hid_device.h"
 #include "class/midi/midi_device.h"
 #include "class/audio/audio_device.h"
-#include "device/usbd_pvt.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
@@ -152,16 +151,11 @@ bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n, uint8_t func_id, uint8_t 
   rx_bytes += n; rx_packets++;
   return true;
 }
-// The USB controller's own view of the sound card's OUT endpoint (3): control and transfer-size registers, and
-// the core interrupt status. Read-only.
-#define OTG(off) (*(volatile uint32_t *)(0x60080000 + (off)))
 int usb_audio_report(char *out, int size) {
-  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%d,\"rate\":%.5f,\"underruns\":%lu,\"gain\":%.3f,"
-                  "\"busyOut\":%s,\"doepctl\":\"%08lx\",\"doeptsiz\":\"%08lx\",\"gintsts\":\"%08lx\"}",
+  return snprintf(out, size, "{\"streaming\":%s,\"primed\":%s,\"sets\":%lu,\"alt\":%d,\"rxBytes\":%lu,\"rxPackets\":%lu,\"fill\":%d,\"rate\":%.5f,\"underruns\":%lu,\"gain\":%.3f}",
                   streaming ? "true" : "false", primed ? "true" : "false", (unsigned long)itf_sets, last_alt == 0xFF ? -1 : last_alt,
                   (unsigned long)rx_bytes, (unsigned long)rx_packets, r_count, 1 + fminf(fmaxf(err_avg * 0.003f, -0.003f), 0.003f),
-                  (unsigned long)underruns, host_gain, ready && usbd_edpt_busy(0, 0x03) ? "true" : "false",
-                  (unsigned long)OTG(0xB60), (unsigned long)OTG(0xB70), (unsigned long)OTG(0x014));
+                  (unsigned long)underruns, host_gain);
 }
 
 

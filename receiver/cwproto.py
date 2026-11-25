@@ -36,7 +36,7 @@ STATUS packet, server to client (48 bytes, tag):
   type      1   2
   flags     1   see ST_* below
   mode      1   rig mode byte (CI-V), 0 = unknown
-  reserved  1
+  version   1   receiver version (RECEIVER_VERSION); 0 = a receiver from before it had one
   session   4   session the server is running
   seq       4   status counter
   echo_t    8   t_send of the last accepted KEY packet
@@ -61,6 +61,10 @@ TYPE_STATUS = 2
 TAG_LEN = 16
 MAX_EDGES = 8
 
+# Raised with every receiver change the box should be able to tell apart. The box shows it, and says so when the
+# receiver is older than the one its firmware was made for (CWL2_RECEIVER_LATEST in firmware/src/cwl2.h).
+RECEIVER_VERSION = 1
+
 FLAG_ACTIVE = 0x01
 
 ST_RIG_VALID = 0x01     # mode and frequency are valid
@@ -75,7 +79,7 @@ STATUS_BODY = struct.Struct("!4sBBBBIIQIQIHHHH")
 
 KeyPacket = collections.namedtuple("KeyPacket", "flags wpm session seq t_send nonce ev_idx0 delay_ms edges")
 Status = collections.namedtuple(
-    "Status", "flags mode session seq echo_t echo_age nonce freq_hz delay_ms late lost rx_pkts")
+    "Status", "flags mode session seq echo_t echo_age nonce freq_hz delay_ms late lost rx_pkts version", defaults=(0,))
 
 
 def tag(key, data):
@@ -116,7 +120,7 @@ def unpack_key(key, data):
 
 
 def pack_status(key, status):
-    body = STATUS_BODY.pack(MAGIC, TYPE_STATUS, status.flags, status.mode, 0, status.session,
+    body = STATUS_BODY.pack(MAGIC, TYPE_STATUS, status.flags, status.mode, status.version & 0xFF, status.session,
                             status.seq & 0xFFFFFFFF, status.echo_t, status.echo_age & 0xFFFFFFFF, status.nonce,
                             status.freq_hz, status.delay_ms & 0xFFFF, status.late & 0xFFFF, status.lost & 0xFFFF,
                             status.rx_pkts & 0xFFFF)
@@ -129,11 +133,11 @@ def unpack_status(key, data):
     body, received = data[:-TAG_LEN], data[-TAG_LEN:]
     if not hmac.compare_digest(tag(key, body), received):
         return None
-    magic, kind, flags, mode, _, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts = \
+    magic, kind, flags, mode, version, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts = \
         STATUS_BODY.unpack(body)
     if magic != MAGIC or kind != TYPE_STATUS:
         return None
-    return Status(flags, mode, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts)
+    return Status(flags, mode, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts, version)
 
 
 def signed32(value):

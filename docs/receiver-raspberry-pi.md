@@ -129,6 +129,14 @@ The receiver also lets go of the key by itself when:
 - one key-down lasts longer than five seconds,
 - wfview exits or restarts (keying resumes when wfview has the port again).
 
+## What the log tells
+
+`journalctl --user -u fjarrnyckel-receiver` shows one line when the receiver starts (`"event": "listening"`,
+with its version), one whenever it lets go of the key by itself (`"released"`, with the reason), and one a
+minute after each stretch of keying (`"keying"`): how many key movements were played, how far the length of
+each mark was from the original (`mark_length_error_ms`) and how far from its planned moment each movement was
+played (`actuation_error_ms`), as median, 99th percentile and largest.
+
 ## Test without transmitting
 
 Put the radio in CW with **break-in (BK-IN) off**. The radio then only sounds

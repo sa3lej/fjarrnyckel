@@ -42,6 +42,7 @@ typedef struct {
   uint16_t ts_region_auto;  // the receiver's region as last learned, used when ts_region is 0
   uint8_t radio_volume; // sound from the computer (the radio, through wfview) in the headphones, 0-100
   uint8_t led_level;    // status light brightness 1-100, 10 = the original level; 0 (older copies) = 10
+  uint8_t link_delay;   // playout buffer asked of the receiver, 10-200 ms; 0 = the receiver's own default (25 ms)
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -79,6 +80,8 @@ typedef struct {
   bool rig_valid, cw;    // the receiver knows the radio's mode; the radio is in CW
   uint16_t late, lost;   // key edges that reached the receiver too late, or not at all
   bool tailscale;        // the link runs through Tailscale
+  uint16_t delay_ms;     // the playout buffer the receiver is using right now
+  uint8_t receiver;      // the receiver's version, 0 = from before it had one
 } link_info_t;
 void link_start(void);
 void link_restart(void);                  // after the link settings changed

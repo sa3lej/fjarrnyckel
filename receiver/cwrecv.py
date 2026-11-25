@@ -45,6 +45,7 @@ EXTRA_CAP_US = 500_000     # cap of the adaptive extra delay
 STALE_US = 400_000         # a packet this far behind the best latency is stale
 NONCE_LIFE_US = 5_000_000  # a nonce is current for this long, then previous
 STATUS_EVERY_US = 100_000
+REPORT_QUIET_US = 60_000_000  # a stretch of keying is reported after this long without an edge
 MODES_CW = (0x03, 0x07)    # CI-V mode bytes for CW and CW-R
 
 
@@ -91,7 +92,7 @@ class Receiver:
         self.late = 0
         self.lost = 0
         self.aborts = collections.Counter()
-        self.played = []                       # (edge time, actual time, down)
+        self.played = []                       # (edge time, actual time, down, planned time) since the last report
 
     # ---- helpers -----------------------------------------------------------
     def _new_nonce(self):
@@ -148,7 +149,8 @@ class Receiver:
         self.last_status = now
         return proto.pack_status(self.key, proto.Status(
             flags, mode, self.session or 0, self.status_seq, self.echo_t, max(0, now - self.echo_arrival),
-            self.nonce, freq, (self.delay_us + self.extra_us) // 1000, self.late, self.lost, self.rx_pkts))
+            self.nonce, freq, (self.delay_us + self.extra_us) // 1000, self.late, self.lost, self.rx_pkts,
+            proto.RECEIVER_VERSION))
 
     # ---- packets -----------------------------------------------------------
     def on_packet(self, data, sender, now):
@@ -284,6 +286,12 @@ class Receiver:
             deadlines.append(self.last_packet + self.link_timeout_us + 1)
             deadlines.append(self.key_down_since + self.max_key_down_us + 1)
         return min(deadlines) if deadlines else None
+
+    def take_summary(self):
+        """The summary of the edges played since the last call; those edges are then forgotten."""
+        result = self.summary()
+        self.played = []
+        return result
 
     def summary(self):
         def spread(values):
@@ -654,7 +662,7 @@ def main():
     stop = {"flag": False}
     signal.signal(signal.SIGINT, lambda *_: stop.update(flag=True))
     signal.signal(signal.SIGTERM, lambda *_: stop.update(flag=True))
-    print(json.dumps({"event": "listening", "port": args.port, "output": out.name, "realtime": realtime}), flush=True)
+    print(json.dumps({"event": "listening", "version": proto.RECEIVER_VERSION, "port": args.port, "output": out.name, "realtime": realtime}), flush=True)
     reported = collections.Counter()
     try:
         while not stop["flag"]:
@@ -668,6 +676,10 @@ def main():
                 while now_us() < deadline:
                     pass
                 continue
+            # A stretch of keying is reported once it has been quiet for a minute, and its edges are then let go:
+            # the timing figures reach the log while the receiver runs, and nothing piles up over the months.
+            if core.played and not core.queue and not core.key_down and now - core.played[-1][1] > REPORT_QUIET_US:
+                print(json.dumps({"event": "keying", **core.take_summary()}), flush=True)
             if args.exit_idle_s and core.last_packet is not None and now - core.last_packet > args.exit_idle_s * 1e6:
                 break
             wait = 0.05 if deadline is None else min(0.05, max(0.0, (deadline - now - 150) / 1e6))

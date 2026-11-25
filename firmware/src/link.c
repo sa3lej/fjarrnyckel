@@ -44,7 +44,7 @@ void link_edge(int64_t t_us, bool down) {
   if (task) xTaskNotifyGive(task);         // wake the link at once: the edge goes out without waiting for the next tick
 }
 
-static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; } info = i; } }
+static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; i.delay_ms = 0; i.receiver = 0; } info = i; } }
 
 // The receiver is reached either straight over the network (a UDP socket) or through Tailscale.
 typedef struct { int sock; microlink_udp_socket_t *ts; uint32_t ts_ip; uint16_t port; } path_t;
@@ -103,6 +103,7 @@ static void session(uint32_t gen) {
   while (generation == gen && net_state() == NET_CONNECTED && (!path.ts || ts_handle() == ml)) {
     int64_t now = esp_timer_get_time();
     client.wpm = settings.key_type ? settings.wpm : 0;
+    client.delay_ms = settings.link_delay;                   // 0 = the receiver's own default
     edge_t e;
     while (xQueueReceive(edges, &e, 0)) { cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(&path, esp_timer_get_time()); }
     if (cwl2_due(&client, (uint64_t)now)) send_packet(&path, now);
@@ -114,7 +115,8 @@ static void session(uint32_t gen) {
       link_info_t i = { .state = cwl2_linked(&client) ? LINK_READY : LINK_WAITING,
         .rtt_ms = client.rtt_us < 0 ? -1 : (int)((client.rtt_us + 500) / 1000), .freq_hz = client.status.freq_hz,
         .rig_valid = client.status.flags & CWL2_ST_RIG_VALID, .cw = client.status.flags & CWL2_ST_CW_MODE,
-        .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL };
+        .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL,
+        .delay_ms = client.status.delay_ms, .receiver = client.status.receiver };
       info = i;
     }
     if (now - heard > 1000000) set_state(LINK_NO_ANSWER);    // the receiver answers ten times a second when it is there

@@ -44,7 +44,7 @@ static void key(bool down) {
 }
 
 int main(int argc, char **argv) {
-  if (argc < 6) { fprintf(stderr, "usage: cwl2_host KEYFILE HOST PORT WPM TEXT\n"); return 2; }
+  if (argc < 6) { fprintf(stderr, "usage: cwl2_host KEYFILE HOST PORT WPM TEXT [BUFFER_MS]\n"); return 2; }
   uint8_t keybuf[96]; FILE *f = fopen(argv[1], "rb"); if (!f) { perror("key"); return 2; }
   size_t klen = fread(keybuf, 1, sizeof keybuf, f); fclose(f);
   while (klen && (keybuf[klen - 1] == '\n' || keybuf[klen - 1] == '\r' || keybuf[klen - 1] == ' ')) klen--;
@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   srand((unsigned)now_us());
   cwl2_init(&c, keybuf, klen, (uint32_t)rand() | 1);
   int wpm = atoi(argv[4]); c.wpm = (uint8_t)wpm;
+  if (argc > 6) c.delay_ms = (uint16_t)atoi(argv[6]);
   uint64_t unit = 1200000u / (unsigned)wpm, give_up = now_us() + 5000000;
   while (!cwl2_linked(&c)) { if (now_us() > give_up) { printf("{\"linked\":false}\n"); return 1; } pump(now_us() + 20000); }
   uint64_t at = now_us() + 200000; int edges = 0;
@@ -64,7 +65,7 @@ int main(int argc, char **argv) {
     at += unit * 2;
   }
   pump(now_us() + 1000000);
-  printf("{\"linked\":true,\"edges\":%d,\"rx_pkts\":%u,\"late\":%u,\"lost\":%u,\"delay_ms\":%u,\"flags\":%u,\"rtt_us\":%lld}\n",
-         edges, c.status.rx_pkts, c.status.late, c.status.lost, c.status.delay_ms, c.status.flags, (long long)c.rtt_us);
+  printf("{\"linked\":true,\"edges\":%d,\"rx_pkts\":%u,\"late\":%u,\"lost\":%u,\"delay_ms\":%u,\"receiver\":%u,\"flags\":%u,\"rtt_us\":%lld}\n",
+         edges, c.status.rx_pkts, c.status.late, c.status.lost, c.status.delay_ms, c.status.receiver, c.status.flags, (long long)c.rtt_us);
   return 0;
 }
