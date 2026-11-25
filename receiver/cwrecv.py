@@ -20,6 +20,8 @@ Rules, modelled on OK1HRA's Paddle2IP:
   a recorded packet cannot start one. A session that has been replaced cannot
   come back while its nonce could still be valid. Within a session the packet
   counter must rise.
+- The box may ask for the radio to be put in CW (CMD_SELECT_CW); the rig object
+  does that outside the keying loop. Nothing else about the radio is changed.
 - The key is released, queued edges are dropped and the receiver goes mute
   when: packets stop while the key is down, one key-down lasts too long, edges
   are lost beyond the redundancy, a stale packet arrives, or the rig is not in
@@ -51,7 +53,7 @@ MODES_CW = (0x03, 0x07)    # CI-V mode bytes for CW and CW-R
 
 class Receiver:
     def __init__(self, key, out, *, delay_ms=25, link_timeout_ms=300, max_key_down_ms=5000, window_ms=2000,
-                 rig=None, random_bytes=os.urandom):
+                 rig=None, random_bytes=os.urandom, cw_from_box=True):
         self.key = key
         self.out = out
         self.default_delay_us = int(delay_ms * 1000)
@@ -61,6 +63,7 @@ class Receiver:
         self.window_us = int(window_ms * 1000)
         self.rig = rig
         self.random_bytes = random_bytes
+        self.cw_from_box = cw_from_box          # the box may ask for the radio to be put in CW
 
         self.session = None
         self.retired = {}                      # session -> when it was replaced
@@ -86,6 +89,7 @@ class Receiver:
         self.nonce_since = None
         self.last_status = None
         self.status_seq = 0
+        self.last_command = None               # cmd_seq of the last command carried out in this session
 
         self.rx_pkts = 0
         self.rejected = 0
@@ -175,6 +179,7 @@ class Receiver:
                 self.retired[self.session] = now
             self.session = packet.session
             self.next_idx = (packet.ev_idx0 + len(packet.edges)) & 0xFFFFFFFF   # do not replay its history
+            self.last_command = None
             self.muted = True
             self.extra_us = 0
             self.window.clear()
@@ -204,6 +209,13 @@ class Receiver:
             replies.append((self._status(now, nonce_bad=not nonce_ok), sender))
         if not nonce_ok:
             return replies                      # the edges come again in the next packets
+
+        # A command comes in every packet for two seconds; each one is carried out once.
+        if packet.command and packet.command_seq != self.last_command:
+            self.last_command = packet.command_seq
+            if (packet.command == proto.CMD_SELECT_CW and self.cw_from_box and self.rig is not None
+                    and hasattr(self.rig, "select_cw")):
+                self.rig.select_cw()
 
         allowed = self.keying_allowed()
         stale = sample - self.min_latency > STALE_US
@@ -341,6 +353,7 @@ class SerialKey:
         self.mode = 0
         self.freq = 0
         self.seen = 0.0
+        self.want_cw = False
         self.running = True
         self.thread = threading.Thread(target=self._poll, daemon=True)
         self.thread.start()
@@ -354,6 +367,12 @@ class SerialKey:
                 with self.lock:
                     mode = self.civ.query(self.link, b"\x04")
                     freq = self.civ.query(self.link, b"\x03")
+                    if self.want_cw and mode:
+                        self.want_cw = False
+                        if mode[0] not in MODES_CW:
+                            # CI-V 06: mode CW, with the filter number in use now (mode alone would pick FIL1).
+                            self.civ.command(self.link, bytes([0x06, 0x03]) + bytes(mode[1:2]))
+                            print(json.dumps({"event": "mode", "to": "CW", "by": "the box"}), flush=True)
                 if mode and freq and len(freq) == 5:
                     self.mode = mode[0]
                     self.freq = int("".join(f"{byte:02x}" for byte in reversed(freq)))
@@ -364,6 +383,9 @@ class SerialKey:
 
     def cw_mode(self):
         return self.mode in MODES_CW and time.monotonic() - self.seen < 3.0
+
+    def select_cw(self):
+        self.want_cw = True                     # done by the poll thread, never by the keying loop
 
     def mode_and_freq(self):
         fresh = time.monotonic() - self.seen < 3.0
@@ -435,6 +457,8 @@ class WfviewKey:
         self.mode = 0
         self.freq = 0
         self.seen = 0.0
+        self.want_cw = False
+        self.wake = threading.Event()   # set to make the poll thread look at once
         self.running = True
         self.thread = threading.Thread(target=self._poll, daemon=True)
         self.thread.start()
@@ -588,6 +612,13 @@ class WfviewKey:
                 if sock is None:
                     sock = socket.create_connection(self.rigctld, timeout=2)
                     self._identify(self._dump_caps(sock))   # wfview may have been switched to another radio
+                if self.want_cw:
+                    self.want_cw = False
+                    if self.mode not in MODES_CW:
+                        # Passband -1: wfview changes the mode and leaves the filter as it is.
+                        # (Tried on an IC-7300 with wfview 2.22: any other value sets a filter width, on the mode in use before.)
+                        self._rigctl(sock, b"M CW -1")
+                        print(json.dumps({"event": "mode", "to": "CW", "by": "the box"}), flush=True)
                 mode = self._rigctl(sock, b"m")[0].strip()
                 freq = self._rigctl(sock, b"f")[0].strip()
                 self.mode = self.RIG_MODES.get(mode, 0xFF)
@@ -599,9 +630,14 @@ class WfviewKey:
                 if sock is not None:
                     sock.close()
                     sock = None
-            time.sleep(0.5)
+            self.wake.wait(0.5)
+            self.wake.clear()
         if sock is not None:
             sock.close()
+
+    def select_cw(self):
+        self.want_cw = True                     # done by the poll thread, never by the keying loop
+        self.wake.set()
 
     def cw_mode(self):
         # With a known menu the radio is only ready once the menu is set to DTR;
@@ -638,6 +674,8 @@ def main():
     parser.add_argument("--delay-ms", type=float, default=25.0, help="playout delay when the client asks for none")
     parser.add_argument("--link-timeout-ms", type=float, default=300.0)
     parser.add_argument("--max-key-down-ms", type=float, default=5000.0)
+    parser.add_argument("--no-cw-from-box", action="store_true",
+                        help="never change the radio's mode when the box asks for CW: selecting CW by the radio stays the only switch")
     parser.add_argument("--exit-idle-s", type=float, default=0.0, help="test use: exit after this long without packets")
     args = parser.parse_args()
 
@@ -649,7 +687,8 @@ def main():
     else:
         out = SerialKey(args.serial) if args.serial else NullKey()
     core = Receiver(proto.load_key(args.key), out, delay_ms=args.delay_ms, link_timeout_ms=args.link_timeout_ms,
-                    max_key_down_ms=args.max_key_down_ms, rig=out if args.serial else None)
+                    max_key_down_ms=args.max_key_down_ms, rig=out if args.serial else None,
+                    cw_from_box=not args.no_cw_from_box)
     try:
         os.sched_setscheduler(0, os.SCHED_FIFO, os.sched_param(10))
         realtime = True

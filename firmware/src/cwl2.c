@@ -6,6 +6,7 @@
 #define HEARTBEAT_ACTIVE_US 20000u
 #define HEARTBEAT_IDLE_US 100000u
 static const uint32_t EDGE_REPEATS_US[2] = { 3000, 8000 };   // an edge packet is sent again this long after the edge
+#define COMMAND_US 2000000u          // a command rides in every packet for this long, so a lost packet does not lose it
 #define MAX_EDGES 8
 #define TAG_LEN 16
 #define CAP (sizeof ((cwl2_t *)0)->edges / sizeof ((cwl2_t *)0)->edges[0])
@@ -33,6 +34,10 @@ void cwl2_edge(cwl2_t *c, uint64_t t_us, bool down) {
   c->repeats[0] = t_us + EDGE_REPEATS_US[0]; c->repeats[1] = t_us + EDGE_REPEATS_US[1]; c->n_repeats = 2;
 }
 
+void cwl2_command(cwl2_t *c, uint8_t command, uint64_t now) {
+  c->command = command; c->command_seq++; c->command_until = now + COMMAND_US;
+}
+
 static bool active(const cwl2_t *c, uint64_t now) { return c->has_edge && now - c->last_edge < ACTIVE_US; }
 
 bool cwl2_due(cwl2_t *c, uint64_t now) {
@@ -49,7 +54,8 @@ size_t cwl2_packet(cwl2_t *c, uint64_t now, uint8_t *out) {
   memcpy(p, "CWL2", 4); p += 4;
   *p++ = 1; *p++ = active(c, now) ? 1 : 0; *p++ = c->wpm; *p++ = (uint8_t)n;
   put(&p, c->session, 4); put(&p, ++c->seq, 4); put(&p, now, 8); put(&p, c->nonce, 8);
-  put(&p, n ? c->edges[from].index : c->next_index, 4); put(&p, c->delay_ms, 2); put(&p, 0, 2);
+  put(&p, n ? c->edges[from].index : c->next_index, 4); put(&p, c->delay_ms, 2);
+  *p++ = c->command && now < c->command_until ? c->command : 0; *p++ = c->command_seq;
   for (int i = from; i < c->n_edges; i++) put(&p, (c->edges[i].t << 1) | (c->edges[i].down ? 1 : 0), 8);
   uint8_t mac[32];
   cwl2_hmac(c->key, c->key_len, out, (size_t)(p - out), mac);

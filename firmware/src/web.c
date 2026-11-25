@@ -85,24 +85,27 @@ static esp_err_t get_status(httpd_req_t *req) {
   static const char *names[] = { "no-setup", "connecting", "connected", "failed" };
   static const char *links[] = { "off", "no-wifi", "no-tailscale", "not-found", "no-answer", "waiting", "ready" };
   static const char *tss[] = { "off", "no-wifi", "connecting", "needs-login", "connected", "auth-failed", "error" };
-  char ssid[80], host[140], login[2 * 256 + 8], body[2700];
+  char ssid[200], host[140], login[2 * 256 + 8], joined[200];
+  static char body[6000], nets[1800];
+  json_text(joined, sizeof joined, net_join_failed());
+  net_known(nets, sizeof nets);
   json_text(login, sizeof login, ts_login_url());
-  json_text(ssid, sizeof ssid, settings.ssid);
+  json_text(ssid, sizeof ssid, net_ssid());
   json_text(host, sizeof host, settings.link_host);
   link_info_t l = link_info();
   char ua[480]; usb_audio_report(ua, sizeof ua);
   update_info_t u = update_info();
   snprintf(body, sizeof body,
-    "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
+    "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"rssi\":%d,\"nets\":%s,\"joinFailed\":\"%s\",\"joinReason\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
     "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"hp\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
-    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,\"buffer\":%d,\"delay\":%u,\"recv\":%d,\"recvLatest\":%d,"
+    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,\"buffer\":%d,\"delay\":%u,\"recv\":%d,\"recvLatest\":%d,\"mode\":%d,\"keyN\":%lu,\"keyLate\":%u,\"keyLost\":%u,\"keyPeak\":%u,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,\"tsRegion\":%u,\"tsHome\":%d,\"tsPeerHome\":%d,"
     "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s,\"radio\":%d,\"radioSpk\":%d,\"bright\":%d,\"usbAudio\":%s,\"ua\":%s}",
-    firmware_version(), names[net_state()], ssid, net_ip(), net_fail_reason(), net_ap_name(),
+    firmware_version(), names[net_state()], ssid, net_ip(), net_rssi(), nets, joined, net_join_reason(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, settings.hp_volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
-    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false", settings.link_delay, l.delay_ms, l.receiver, CWL2_RECEIVER_LATEST,
+    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false", settings.link_delay, l.delay_ms, l.receiver, CWL2_RECEIVER_LATEST, l.mode, (unsigned long)l.k_edges, l.k_late, l.k_lost, l.k_peak_ms,
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false", settings.ts_region, ts_home_region(), ts_peer_region(),
     u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false",
     u.is_signed ? "true" : "false", service_mode() ? "true" : "false", !settings.led_off, !settings.tones_off,
@@ -161,6 +164,15 @@ static esp_err_t post_wifi(httpd_req_t *req) {
   return ESP_OK;
 }
 
+static esp_err_t post_wifi_forget(httpd_req_t *req) {
+  char body[200], ssid[33] = "";
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  field(body, "ssid", ssid, sizeof ssid);
+  net_forget(ssid);
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
 // The shared key is only ever written, never sent back: an empty key field keeps the stored one.
 static esp_err_t post_link(httpd_req_t *req) {
   char body[420], host[64] = "", port[8] = "", key[96] = "";
@@ -171,6 +183,13 @@ static esp_err_t post_link(httpd_req_t *req) {
   if (key[0]) strlcpy(settings.link_key, key, sizeof settings.link_key);
   settings_save();
   link_restart();
+  httpd_resp_set_type(req, "application/json");
+  return httpd_resp_sendstr(req, "{\"ok\":true}");
+}
+
+// Asks the receiver to put the radio in CW, which switches keying on. For when wfview is out of reach.
+static esp_err_t post_radio_cw(httpd_req_t *req) {
+  link_select_cw();
   httpd_resp_set_type(req, "application/json");
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
@@ -334,7 +353,7 @@ static esp_err_t redirect(httpd_req_t *req, httpd_err_code_t err) {
 
 void web_start(void) {
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-  cfg.max_uri_handlers = 16; cfg.recv_wait_timeout = 15; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
+  cfg.max_uri_handlers = 20; cfg.recv_wait_timeout = 15; cfg.stack_size = 8192; cfg.lru_purge_enable = true;
   httpd_handle_t server;
   if (httpd_start(&server, &cfg) != ESP_OK) { ESP_LOGE("web", "the setup page could not start"); return; }
   const httpd_uri_t routes[] = {
@@ -352,6 +371,8 @@ void web_start(void) {
     { .uri = "/api/backup", .method = HTTP_POST, .handler = post_backup },
     { .uri = "/api/restore", .method = HTTP_POST, .handler = post_restore },
     { .uri = "/api/usb/keyboard", .method = HTTP_POST, .handler = post_usb_keyboard },
+    { .uri = "/api/radio/cw", .method = HTTP_POST, .handler = post_radio_cw },
+    { .uri = "/api/wifi/forget", .method = HTTP_POST, .handler = post_wifi_forget },
   };
   new_session();
   for (int i = 0; i < sizeof routes / sizeof routes[0]; i++) {

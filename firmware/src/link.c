@@ -35,6 +35,17 @@ void cwl2_hmac(const uint8_t *key, size_t key_len, const uint8_t *data, size_t l
 }
 
 link_info_t link_info(void) { return info; }
+static volatile bool want_cw;
+void link_select_cw(void) { want_cw = true; if (task) xTaskNotifyGive(task); }
+
+// The last stretch of keying: counted here, from the receiver's running totals, so the page can say how that
+// stretch went (and not how every stretch since the receiver started went). A stretch ends after a minute
+// without a key movement. Kept across reconnects.
+#define STRETCH_GAP_US 60000000
+static int64_t k_last_edge;
+static uint32_t k_edges;
+static uint16_t k_base_late, k_base_lost, k_peak, seen_late, seen_lost;
+static bool k_any, seen_counts, k_base_due;
 void link_restart(void) { generation++; }
 
 void link_edge(int64_t t_us, bool down) {
@@ -105,18 +116,36 @@ static void session(uint32_t gen) {
     client.wpm = settings.key_type ? settings.wpm : 0;
     client.delay_ms = settings.link_delay;                   // 0 = the receiver's own default
     edge_t e;
-    while (xQueueReceive(edges, &e, 0)) { cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(&path, esp_timer_get_time()); }
+    while (xQueueReceive(edges, &e, 0)) {
+      if (cwl2_linked(&client)) {             // only what the receiver will play counts
+        if (!k_any || e.t - k_last_edge > STRETCH_GAP_US) {
+          k_edges = 0; k_peak = 0; k_any = true;
+          if (seen_counts) { k_base_late = seen_late; k_base_lost = seen_lost; } else k_base_due = true;
+        }
+        k_edges++; k_last_edge = e.t;
+      }
+      cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(&path, esp_timer_get_time());
+    }
+    if (want_cw) { want_cw = false; cwl2_command(&client, CWL2_CMD_SELECT_CW, (uint64_t)now); send_packet(&path, now); }
     if (cwl2_due(&client, (uint64_t)now)) send_packet(&path, now);
     uint8_t buf[96]; int n;
     while ((n = receive(&path, buf, sizeof buf)) > 0) {
       now = esp_timer_get_time();
       if (!cwl2_on_status(&client, buf, (size_t)n, (uint64_t)now)) continue;
       heard = now;
+      const cwl2_status_t *st = &client.status;
+      seen_late = st->late; seen_lost = st->lost; seen_counts = true;
+      if (k_base_due) { k_base_due = false; k_base_late = st->late; k_base_lost = st->lost; }
+      if (st->late < k_base_late) k_base_late = 0;      // the receiver was restarted: its totals began again
+      if (st->lost < k_base_lost) k_base_lost = 0;
+      if (k_any && now - k_last_edge < STRETCH_GAP_US && st->delay_ms > k_peak) k_peak = st->delay_ms;
       link_info_t i = { .state = cwl2_linked(&client) ? LINK_READY : LINK_WAITING,
         .rtt_ms = client.rtt_us < 0 ? -1 : (int)((client.rtt_us + 500) / 1000), .freq_hz = client.status.freq_hz,
         .rig_valid = client.status.flags & CWL2_ST_RIG_VALID, .cw = client.status.flags & CWL2_ST_CW_MODE,
         .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL,
-        .delay_ms = client.status.delay_ms, .receiver = client.status.receiver };
+        .delay_ms = client.status.delay_ms, .receiver = client.status.receiver, .mode = client.status.mode,
+        .k_edges = k_any ? k_edges : 0, .k_late = k_any ? (uint16_t)(st->late - k_base_late) : 0,
+        .k_lost = k_any ? (uint16_t)(st->lost - k_base_lost) : 0, .k_peak_ms = k_peak };
       info = i;
     }
     if (now - heard > 1000000) set_state(LINK_NO_ANSWER);    // the receiver answers ten times a second when it is there

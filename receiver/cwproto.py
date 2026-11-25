@@ -22,8 +22,12 @@ KEY packet, client to server (40-byte header, nev x 8-byte edges, tag):
   nonce     8   last nonce received in a STATUS (0 = none yet)
   ev_idx0   4   index of the first edge in this packet
   delay_ms  2   requested playout delay, 0 = server default
-  reserved  2
+  command   1   0 = none; CMD_SELECT_CW = put the radio in CW
+  cmd_seq   1   raised by the client for every new command
   edges     8n  (t_us << 1) | down   - time of the edge, new key state
+
+  A command rides in every packet for two seconds after it was given, so a lost packet does not lose it;
+  the server carries out each (session, cmd_seq) once.
 
   Client rules: a packet at once on every edge, sent again 3 ms and 8 ms later
   so one lost packet costs no time; a heartbeat every 20 ms while ACTIVE and
@@ -63,7 +67,9 @@ MAX_EDGES = 8
 
 # Raised with every receiver change the box should be able to tell apart. The box shows it, and says so when the
 # receiver is older than the one its firmware was made for (CWL2_RECEIVER_LATEST in firmware/src/cwl2.h).
-RECEIVER_VERSION = 1
+RECEIVER_VERSION = 2     # 2: carries out CMD_SELECT_CW
+
+CMD_SELECT_CW = 1        # put the radio in CW, so keying comes on
 
 FLAG_ACTIVE = 0x01
 
@@ -73,11 +79,12 @@ ST_KEY_DOWN = 0x08      # the key line is closed now
 ST_NONCE_BAD = 0x20     # the last KEY packet carried a stale nonce
 ST_MUTED = 0x40         # the server is waiting for a word gap
 
-KEY_HEAD = struct.Struct("!4sBBBBIIQQIHH")
+KEY_HEAD = struct.Struct("!4sBBBBIIQQIHBB")
 EDGE = struct.Struct("!Q")
 STATUS_BODY = struct.Struct("!4sBBBBIIQIQIHHHH")
 
-KeyPacket = collections.namedtuple("KeyPacket", "flags wpm session seq t_send nonce ev_idx0 delay_ms edges")
+KeyPacket = collections.namedtuple("KeyPacket", "flags wpm session seq t_send nonce ev_idx0 delay_ms edges command command_seq",
+                                   defaults=(0, 0))
 Status = collections.namedtuple(
     "Status", "flags mode session seq echo_t echo_age nonce freq_hz delay_ms late lost rx_pkts version", defaults=(0,))
 
@@ -98,7 +105,7 @@ def pack_key(key, packet):
     """edges: list of (time_us, down)."""
     body = KEY_HEAD.pack(MAGIC, TYPE_KEY, packet.flags, packet.wpm, len(packet.edges), packet.session,
                          packet.seq & 0xFFFFFFFF, packet.t_send, packet.nonce, packet.ev_idx0 & 0xFFFFFFFF,
-                         packet.delay_ms, 0)
+                         packet.delay_ms, packet.command & 0xFF, packet.command_seq & 0xFF)
     body += b"".join(EDGE.pack((when << 1) | (1 if down else 0)) for when, down in packet.edges)
     return body + tag(key, body)
 
@@ -107,7 +114,7 @@ def unpack_key(key, data):
     if len(data) < KEY_HEAD.size + TAG_LEN:
         return None
     body, received = data[:-TAG_LEN], data[-TAG_LEN:]
-    magic, kind, flags, wpm, nev, session, seq, t_send, nonce, ev_idx0, delay_ms, _ = KEY_HEAD.unpack_from(body)
+    magic, kind, flags, wpm, nev, session, seq, t_send, nonce, ev_idx0, delay_ms, command, command_seq = KEY_HEAD.unpack_from(body)
     if magic != MAGIC or kind != TYPE_KEY or nev > MAX_EDGES or len(body) != KEY_HEAD.size + nev * EDGE.size:
         return None
     if session == 0 or not hmac.compare_digest(tag(key, body), received):
@@ -116,7 +123,7 @@ def unpack_key(key, data):
     for index in range(nev):
         (value,) = EDGE.unpack_from(body, KEY_HEAD.size + index * EDGE.size)
         edges.append((value >> 1, bool(value & 1)))
-    return KeyPacket(flags, wpm, session, seq, t_send, nonce, ev_idx0, delay_ms, edges)
+    return KeyPacket(flags, wpm, session, seq, t_send, nonce, ev_idx0, delay_ms, edges, command, command_seq)
 
 
 def pack_status(key, status):

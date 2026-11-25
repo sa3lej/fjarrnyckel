@@ -86,10 +86,16 @@ with `journalctl --user -u fjarrnyckel-receiver -f`.
 
 ## How keying is switched on and off
 
-**Selecting CW (or CW-R) in wfview is the switch.** While the radio is in CW,
-the receiver sets the radio's *USB Keying (CW)* menu to DTR and accepts keying.
-When you leave CW, or the receiver stops, it sets the menu back to OFF. In any
-other mode the receiver refuses to key.
+**CW mode is the switch.** While the radio is in CW (or CW-R), the receiver sets
+the radio's *USB Keying (CW)* menu to DTR and accepts keying. When you leave CW,
+or the receiver stops, it sets the menu back to OFF. In any other mode the
+receiver refuses to key.
+
+You select CW in wfview, or from the box: when the radio is in another mode, the
+box's page shows **Switch the radio to CW**. The receiver then asks wfview for CW
+and changes nothing else; the filter stays as the radio had it. Leaving CW is
+done in wfview. Start the receiver with `--no-cw-from-box` if selecting CW by
+the radio should stay the only switch.
 
 ## Radios
 

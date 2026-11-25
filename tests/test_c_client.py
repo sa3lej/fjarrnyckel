@@ -69,6 +69,19 @@ class CClientTests(unittest.TestCase):
         self.assertEqual(client["receiver"], proto.RECEIVER_VERSION)
         self.assertEqual(client["delay_ms"], 25)
 
+    def test_a_command_rides_for_two_seconds(self):
+        cc = shutil.which("cc")
+        tool = os.path.join(self.dir, "cwl2_command")
+        built = subprocess.run([cc, "-Wall", "-O2", "-I" + os.path.join(ROOT, "firmware/src"), "-o", tool,
+                                os.path.join(ROOT, "tests/host/cwl2_command.c"), os.path.join(ROOT, "firmware/src/cwl2.c"),
+                                "-lcrypto"], capture_output=True, text=True)
+        self.assertEqual(built.returncode, 0, built.stderr)
+        key = "a-test-key-of-enough-length"
+        lines = subprocess.run([tool, key], capture_output=True, text=True).stdout.split()
+        before, during, after = (proto.unpack_key(key.encode(), bytes.fromhex(line)) for line in lines)
+        self.assertEqual((before.command, during.command, after.command), (0, proto.CMD_SELECT_CW, 0))
+        self.assertEqual(during.command_seq, 1)
+
     def test_the_buffer_the_client_asks_for_is_used(self):
         client, summary = self.run_pair("E", "60")
         self.assertTrue(client["linked"])

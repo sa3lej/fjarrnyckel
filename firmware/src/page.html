@@ -100,6 +100,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 
 <section class="tab" data-tab="home">
 <div class="status hero" role="status"><span class="lamp" id="hLamp"></span><div><div id="hState">…</div><div id="hDetail"></div></div></div>
+<button class="main" id="hCw" type="button" style="margin-bottom:1rem" hidden></button>
 <div class="card rows">
  <button class="row" type="button" data-go="net" id="rWifi"><span class="lamp"></span><span class="rl">Wi-Fi</span><span class="rv"></span><span class="chev">›</span></button>
  <button class="row" type="button" data-go="net" id="rTs"><span class="lamp"></span><span class="rl">Tailscale</span><span class="rv"></span><span class="chev">›</span></button>
@@ -122,10 +123,11 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 
 <h2 data-t="wifi"></h2>
 <div class="card" id="wifiCard">
- <div id="wNow" hidden><div class="mini"><span class="lamp ok"></span><div><div class="strong" id="wNowT"></div><div class="sub" id="wNowD"></div></div></div>
+ <div id="wNow" hidden><div class="mini"><span class="lamp ok"></span><div><div class="strong" id="wNowT"></div><div class="sub" id="wNowD"></div><div class="sub" id="wNowS"></div></div></div>
   <button class="quiet" id="wChange" type="button" style="margin-top:.8rem"></button></div>
  <div id="wList" hidden><p class="lead" data-t="wPick"></p><div id="nets"></div>
   <div class="two"><button class="quiet" id="scan" type="button"></button><button class="quiet" id="wOther" type="button"></button></div></div>
+ <div id="wKnown" hidden style="margin-top:1.1rem"><label data-t="wKnownL"></label><div id="known"></div><p class="hint" data-t="wKnownHint"></p></div>
  <div id="wPass" hidden><p class="lead" id="wPassT"></p>
   <div id="wNameBox"><label for="ssid" data-t="netName"></label>
    <input id="ssid" type="text" name="fn-network" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false"></div>
@@ -158,6 +160,8 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 <h2 data-t="link"></h2>
 <div class="card">
  <div class="mini"><span class="lamp" id="linkLamp"></span><div><div id="linkState"></div><div id="linkDetail"></div></div></div>
+ <button class="quiet" id="lCw" type="button" style="margin-top:.8rem" hidden></button>
+ <p class="hint" id="keyStat"></p>
  <label for="lhost" data-t="lhost"></label>
  <input id="lhost" type="text" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
  <label for="lport" data-t="lport"></label>
@@ -169,6 +173,7 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
  <label for="buffer" style="margin-top:1.2rem"><span data-t="bufL"></span><b><span id="bufferV"></span> ms</b></label>
  <input id="buffer" type="range" min="10" max="200" step="5">
  <p class="hint"><span data-t="bufHint"></span> <span id="bufNow"></span></p>
+ <div id="bufTry" hidden><p class="hint" id="bufTryT" style="color:var(--brass)"></p><button class="quiet" id="bufTryB" type="button" style="margin-top:.6rem"></button></div>
  <p class="hint" id="recvVer"></p>
  <p class="hint" id="recvOld" style="color:var(--brass)" data-t="recvOld" hidden></p>
 </div>
@@ -278,11 +283,11 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 <script>
 const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Look for networks",scanning:"Looking…",scanAgain:"Look again",none:"No networks found.",scanFail:"The search failed. Try again.",
  netName:"Network name",password:"Password",show:"Show",hide:"Hide",join:"Connect",open:"open",
- wPick:"Choose the Wi-Fi network the box should use.",wOther:"Other network…",wBack:"Back",wChange:"Change network",wPassFor:"Password for {s}",wOpenNet:"{s} is an open network. No password is needed.",wManual:"Enter the network's name and password.",
+ wPick:"Choose the Wi-Fi network the box should use.",wOther:"Other network…",wBack:"Back",wChange:"Join another network",wSig:"Signal: {q} ({n} dBm)",sigStrong:"strong",sigGood:"good",sigFair:"fair",sigWeak:"weak",wKnownL:"Known networks",wKnownHint:"The box joins whichever of these it finds, the strongest first. It remembers up to eight.",wInUse:"in use",wForget:"Forget",wForgetAsk:"Forget {s}? The box will not join it again until you enter it anew.",wPassFor:"Password for {s}",wOpenNet:"{s} is an open network. No password is needed.",wManual:"Enter the network's name and password.",
  wNowD:"The box's address: {ip}",wBusyT:"Connecting to {s}…",wBusyD:"This can take half a minute. Your phone may lose the setup network for a moment.",
  wDoneT:"Connected to {s}",wDoneD:"The setup network switches off in a minute. Put this phone on {s} and open the page again at:",
  wFailT:"Could not connect to {s}",wRetry:"Try again",wLostT:"Lost contact with the box",wLostD:"That usually means it has joined {s}. Put this phone on {s} and open the address below. If the setup network comes back, the password was wrong.",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
- link:"Radio link",bufL:"Buffer",bufHint:"How long the receiver holds each key movement before it keys the radio, to even out the network. Lower is quicker. Raise it if movements arrive late.",bufNow:"In use now: {n} ms.",recvVer:"Receiver version {n}",recvNone:"The receiver does not tell its version",recvOld:"The receiver on the computer by the radio is older than this box expects. Update it there: run git pull in its fjarrnyckel folder and restart the service.",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file. With Tailscale on, use the computer's Tailscale name or its 100.x address.",lsave:"Save",lsaved:"Saved",
+ link:"Radio link",cwBtn:"Switch the radio to CW",cwBusy:"Switching to CW…",lWaitCwM:"Connected. The radio is in {m}",lWaitCwB:"Keying comes on when the radio is in CW.",kFine:"Your last keying: {n} key movements, all in time.",kLate:"Your last keying: {n} key movements, {a} late and {b} lost.",bufTry:"A buffer of {x} ms would have covered the late ones.",bufTryB:"Set the buffer to {x} ms",bufL:"Buffer",bufHint:"How long the receiver holds each key movement before it keys the radio, to even out the network. Lower is quicker. Raise it if movements arrive late.",bufNow:"In use now: {n} ms.",recvVer:"Receiver version {n}",recvNone:"The receiver does not tell its version",recvOld:"The receiver on the computer by the radio is older than this box expects. Update it there: run git pull in its fjarrnyckel folder and restart the service.",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file. With Tailscale on, use the computer's Tailscale name or its 100.x address.",lsave:"Save",lsaved:"Saved",
  lOff:"Not set up",lOffD:"Enter the receiver's address and the shared key.",lNoWifi:"Waiting for Wi-Fi",lNotFound:"The address was not found",lNotFoundD:"Check the receiver address.",lNoAnswer:"No answer from the receiver",lNoAnswerD:"Check that the receiver is running and that the address, port and key match.",
  lWaitCw:"Connected. The radio is not in CW",lWaitCwD:"Select CW on the radio to switch keying on.",lWait:"Connected. Waiting for the receiver",lReady:"Ready. Your key goes to the radio",rt:"round trip {n} ms",lateLost:"{a} late, {b} lost",
  tsWhy:"Tailscale connects the box to the computer by the radio across the internet, with nothing to open in a router. Free for personal use.",tsOn:"Connect to Tailscale",tsKeyToggle:"I have an auth key",tsKey:"Auth key",tsKeyHint:"Optional. Without a key you sign in with your Tailscale account in the next step.",
@@ -312,11 +317,11 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  r:{"network not found":"The network was not found.","wrong password":"The password was not accepted.","could not connect":"The network did not let the box in."},sLost:"No contact with the box",dLost:"If it has just joined your Wi-Fi, put this device on the same network."},
 sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter nätverk",scanning:"Söker…",scanAgain:"Sök igen",none:"Inga nätverk hittades.",scanFail:"Sökningen misslyckades. Försök igen.",
  netName:"Nätverksnamn",password:"Lösenord",show:"Visa",hide:"Dölj",join:"Anslut",open:"öppet",
- wPick:"Välj det Wi-Fi-nätverk som lådan ska använda.",wOther:"Annat nätverk…",wBack:"Tillbaka",wChange:"Byt nätverk",wPassFor:"Lösenord för {s}",wOpenNet:"{s} är ett öppet nätverk. Inget lösenord behövs.",wManual:"Ange nätverkets namn och lösenord.",
+ wPick:"Välj det Wi-Fi-nätverk som lådan ska använda.",wOther:"Annat nätverk…",wBack:"Tillbaka",wChange:"Anslut till ett annat nätverk",wSig:"Signal: {q} ({n} dBm)",sigStrong:"stark",sigGood:"bra",sigFair:"hygglig",sigWeak:"svag",wKnownL:"Kända nätverk",wKnownHint:"Lådan ansluter till det av dem den hittar, det starkaste först. Den minns upp till åtta.",wInUse:"används",wForget:"Glöm",wForgetAsk:"Glömma {s}? Lådan ansluter inte dit igen förrän du anger det på nytt.",wPassFor:"Lösenord för {s}",wOpenNet:"{s} är ett öppet nätverk. Inget lösenord behövs.",wManual:"Ange nätverkets namn och lösenord.",
  wNowD:"Lådans adress: {ip}",wBusyT:"Ansluter till {s}…",wBusyD:"Det kan ta en halv minut. Telefonen kan tappa inställningsnätverket en stund.",
  wDoneT:"Ansluten till {s}",wDoneD:"Inställningsnätverket stängs av om en minut. Koppla telefonen till {s} och öppna sidan igen på:",
  wFailT:"Kunde inte ansluta till {s}",wRetry:"Försök igen",wLostT:"Tappade kontakten med lådan",wLostD:"Det betyder oftast att den har anslutit till {s}. Koppla telefonen till {s} och öppna adressen nedan. Om inställningsnätverket kommer tillbaka var lösenordet fel.",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
- link:"Radiolänk",bufL:"Buffert",bufHint:"Hur länge mottagaren håller varje nyckelrörelse innan den nycklar radion, för att jämna ut nätverket. Lägre är snabbare. Höj den om rörelser kommer för sent.",bufNow:"Används nu: {n} ms.",recvVer:"Mottagarens version {n}",recvNone:"Mottagaren talar inte om sin version",recvOld:"Mottagaren på datorn vid radion är äldre än den här lådan räknar med. Uppdatera den där: kör git pull i dess fjarrnyckel-mapp och starta om tjänsten.",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil. Med Tailscale på: använd datorns Tailscale-namn eller dess 100.x-adress.",lsave:"Spara",lsaved:"Sparat",
+ link:"Radiolänk",cwBtn:"Ställ radion på CW",cwBusy:"Växlar till CW…",lWaitCwM:"Ansluten. Radion står på {m}",lWaitCwB:"Nycklingen slås på när radion står på CW.",kFine:"Din senaste nyckling: {n} nyckelrörelser, alla i tid.",kLate:"Din senaste nyckling: {n} nyckelrörelser, {a} för sena och {b} förlorade.",bufTry:"En buffert på {x} ms hade räckt för de sena.",bufTryB:"Sätt bufferten till {x} ms",bufL:"Buffert",bufHint:"Hur länge mottagaren håller varje nyckelrörelse innan den nycklar radion, för att jämna ut nätverket. Lägre är snabbare. Höj den om rörelser kommer för sent.",bufNow:"Används nu: {n} ms.",recvVer:"Mottagarens version {n}",recvNone:"Mottagaren talar inte om sin version",recvOld:"Mottagaren på datorn vid radion är äldre än den här lådan räknar med. Uppdatera den där: kör git pull i dess fjarrnyckel-mapp och starta om tjänsten.",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil. Med Tailscale på: använd datorns Tailscale-namn eller dess 100.x-adress.",lsave:"Spara",lsaved:"Sparat",
  lOff:"Inte inställd",lOffD:"Ange mottagarens adress och den delade nyckeln.",lNoWifi:"Väntar på Wi-Fi",lNotFound:"Adressen hittades inte",lNotFoundD:"Kontrollera mottagarens adress.",lNoAnswer:"Inget svar från mottagaren",lNoAnswerD:"Kontrollera att mottagaren är igång och att adress, port och nyckel stämmer.",
  lWaitCw:"Ansluten. Radion står inte i CW",lWaitCwD:"Välj CW på radion för att slå på nycklingen.",lWait:"Ansluten. Väntar på mottagaren",lReady:"Klar. Din nyckel går till radion",rt:"tur och retur {n} ms",lateLost:"{a} sena, {b} tappade",
  tsWhy:"Tailscale kopplar ihop lådan med datorn vid radion över internet, utan att något behöver öppnas i en router. Gratis för privat bruk.",tsOn:"Anslut till Tailscale",tsKeyToggle:"Jag har en auth-nyckel",tsKey:"Auth-nyckel",tsKeyHint:"Valfritt. Utan nyckel loggar du in med ditt Tailscale-konto i nästa steg.",
@@ -354,15 +359,22 @@ function texts(){document.documentElement.lang=L;document.querySelectorAll("[dat
  $("showpw").textContent=t($("pass").classList.contains("shown")?"hide":"show");$("showkey").textContent=t($("lkey").classList.contains("shown")?"hide":"show");
  for(const k of["wOther","wBack","wChange","wRetry"])$(k).textContent=t(k);paintWifi();
  for(const k of["tsOn","tsKeyToggle","tsLogin","tsOff","tsForget"])$(k).textContent=t(k);$("showts").textContent=t($("tsKey").classList.contains("shown")?"hide":"show");$("showbk").textContent=t($("bkPass").classList.contains("shown")?"hide":"show");$("upCheck").textContent=t("upCheck");$("unlock").textContent=t("unlock");$("pwOff").textContent=t("pwOff");$("showlock").textContent=t($("lockPass").classList.contains("shown")?"hide":"show");$("showpwn").textContent=t($("pwNew").classList.contains("shown")?"hide":"show");$("lsave").textContent=t("lsave");$("pick").textContent=t("pick");show();paint()}
-function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";return}
+let cwAsked=0;
+function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";$("hCw").hidden=$("lCw").hidden=true;return}
  $("ver").textContent=(S.version||"")+" · "+t(S.signed?"signedY":"signedN");$("svc").textContent=S.service?t("svcOn"):"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
  const heard=S.link=="ready"||S.link=="waiting";$("bufNow").textContent=heard&&S.delay?t("bufNow").replace("{n}",S.delay):"";
  $("recvVer").textContent=!heard?"":S.recv?t("recvVer").replace("{n}",S.recv):t("recvNone");$("recvOld").hidden=!(heard&&S.recv<S.recvLatest);
+ const MODES={0:"LSB",1:"USB",2:"AM",3:"CW",4:"RTTY",5:"FM",7:"CW-R",8:"RTTY-R"};
+ const canCw=S.target==0&&S.link=="waiting"&&S.rigValid&&!S.cw&&S.recv>=2,cwBusy=Date.now()-cwAsked<6000;
+ for(const id of["hCw","lCw"]){$(id).hidden=!canCw;$(id).textContent=t(cwBusy?"cwBusy":"cwBtn");$(id).disabled=cwBusy}
+ $("keyStat").textContent=S.keyN?t(S.keyLate||S.keyLost?"kLate":"kFine").replace("{n}",S.keyN).replace("{a}",S.keyLate).replace("{b}",S.keyLost):"";
+ const tryMs=Math.min(200,Math.ceil(S.keyPeak/5)*5),showTry=S.keyN>0&&S.keyLate>0&&tryMs>(S.buffer||25);
+ $("bufTry").hidden=!showTry;if(showTry){$("bufTryT").textContent=t("bufTry").replace("{x}",tryMs);$("bufTryB").textContent=t("bufTryB").replace("{x}",tryMs);$("bufTryB").dataset.ms=tryMs}
  const mhz=S.freq?(S.freq/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:3,maximumFractionDigits:3})+" MHz":"";
- const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",S.linkTailscale?t("via"):"",(S.late||S.lost)?t("lateLost").replace("{a}",S.late).replace("{b}",S.lost):""].filter(x=>x).join(" · ");
+ const extra=[mhz,S.rtt>=0?t("rt").replace("{n}",S.rtt):"",S.linkTailscale?t("via"):"",(S.keyLate||S.keyLost)?t("lateLost").replace("{a}",S.keyLate).replace("{b}",S.keyLost):""].filter(x=>x).join(" · ");
  const set=(c,a,b)=>{lamp.className="lamp "+c;st.textContent=t(a);d.textContent=b||""};
  if(S.target==1&&(S.link=="ready"||S.link=="waiting")){set("busy","trainNote","");return}
- if(S.link=="ready")set("ok","lReady",extra);else if(S.link=="waiting")S.rigValid&&!S.cw?set("busy","lWaitCw",t("lWaitCwD")):set("busy","lWait",extra);
+ if(S.link=="ready")set("ok","lReady",extra);else if(S.link=="waiting")S.rigValid&&!S.cw?(set("busy","lWaitCw",t(canCw?"lWaitCwB":"lWaitCwD")),MODES[S.mode]&&(st.textContent=t("lWaitCwM").replace("{m}",MODES[S.mode]))):set("busy","lWait",extra);
  else if(S.link=="no-answer")set("bad","lNoAnswer",t("lNoAnswerD"));else if(S.link=="not-found")set("bad","lNotFound",t("lNotFoundD"));
  else if(S.link=="no-tailscale")set("busy","lNoTs",t("lNoTsD"));else if(S.link=="no-wifi")set("","lNoWifi","");else set("","lOff",t("lOffD"))}
 // Tailscale's relay regions by their short code. Unknown codes are shown as they are.
@@ -423,20 +435,31 @@ function show(){for(const k of["wpm","tone","volume","hp","radio","radioSpk","br
  $("h_target").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur.target));$("hWpmBox").hidden=cur.keyType!=1;
  for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v==cur[k]));
  $("paddleBox").hidden=cur.keyType!=1;paintUsb();$("keyHint").textContent=t(cur.keyType!=1?"hintS":cur.iambic==1?"hintB":"hintA")}
+// Every reading of the box's state is taken into the controls, so a change made on another device shows here too.
+// A control you are touching is left alone for a few seconds, and a text field you have typed in is never overwritten.
+const SLIDERS=["wpm","tone","volume","hp","radio","radioSpk","bright","buffer"],SEGS=["keyType","swap","iambic","led","tones","target","usbRaw"];
+const touched={},base={};
+const mine=k=>Date.now()-(touched[k]||0)<4000||(live[k]&&(live[k].busy||live[k].next));
+function absorb(){for(const k of SLIDERS)if(!mine(k))$(k).value=k=="buffer"?(S.buffer||25):S[k];
+ for(const k of SEGS)if(!mine(k))cur[k]=S[k];
+ for(const[id,v]of[["lhost",S.linkHost],["lport",""+S.linkPort]]){const e=$(id);if(base[id]===undefined||(document.activeElement!=e&&e.value===base[id])){e.value=v;base[id]=v}}
+ show()}
 async function status(){try{const r=await fetch("/api/status",{cache:"no-store"});if(r.status==401){locked=true;S=null;paint();return}locked=false;S=await r.json();
- if(!loaded){loaded=true;for(const k of["wpm","tone","volume","hp","radio","radioSpk","bright","buffer"])$(k).value=S[k];$("buffer").value=S.buffer||25;cur.keyType=S.keyType;cur.swap=S.swap;cur.iambic=S.iambic;cur.led=S.led;cur.tones=S.tones;cur.target=S.target;cur.usbRaw=S.usbRaw;$("lhost").value=S.linkHost;$("lport").value=S.linkPort;show();if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
+ absorb();if(!loaded){loaded=true;if(!location.hash&&S.wifi!="connected")go("net",true)}W.misses=0}catch(e){S=null;W.misses++}wifiStep();paint()}
 // A slider sends its value while it is dragged. Only one request per slider is on its way at a time and the newest
 // value always goes last; otherwise two could overtake each other and the setting would jump back and forth.
 const live={};
 function slide(k,save){const q=live[k]||(live[k]={busy:false,next:null});const d={[k]:$(k).value};if(save)d.save=1;
  if(q.busy){q.next=q.next&&q.next.save?{...d,save:1}:d;return}
  q.busy=true;post("/api/settings",d).catch(()=>{}).finally(()=>{q.busy=false;if(q.next){const n=q.next;q.next=null;$(k).value=n[k];slide(k,n.save)}})}
-for(const k of["wpm","tone","volume","hp","radio","radioSpk","bright","buffer"]){$(k).oninput=()=>{show();slide(k,false)};$(k).onchange=()=>slide(k,true)}
-for(const k of["keyType","swap","iambic","led","tones","target","usbRaw"])$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
+for(const k of SLIDERS){$(k).oninput=()=>{touched[k]=Date.now();show();slide(k,false)};$(k).onchange=()=>{touched[k]=Date.now();slide(k,true)}}
+for(const k of SEGS)$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{touched[k]=Date.now();cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
+for(const id of["hCw","lCw"])$(id).onclick=async()=>{cwAsked=Date.now();paintLink();await post("/api/radio/cw",{}).catch(()=>{});status()};
+$("bufTryB").onclick=()=>{$("buffer").value=$("bufTryB").dataset.ms;touched.buffer=Date.now();show();slide("buffer",true)};
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
 $("showpw").onclick=()=>{$("pass").classList.toggle("shown");texts()};
 $("showkey").onclick=()=>{$("lkey").classList.toggle("shown");texts()};
-$("lsave").onclick=async()=>{await post("/api/link",{host:$("lhost").value.trim(),port:$("lport").value.trim(),key:$("lkey").value.trim()}).catch(()=>{});$("lkey").value="";$("lsave").textContent=t("lsaved");setTimeout(texts,1500);status()};
+$("lsave").onclick=async()=>{delete base.lhost;delete base.lport;await post("/api/link",{host:$("lhost").value.trim(),port:$("lport").value.trim(),key:$("lkey").value.trim()}).catch(()=>{});$("lkey").value="";$("lsave").textContent=t("lsaved");setTimeout(texts,1500);status()};
 $("showts").onclick=()=>{$("tsKey").classList.toggle("shown");texts()};
 $("tsKeyToggle").onclick=()=>{$("tsKeyBox").hidden=false;$("tsKeyToggle").hidden=true;$("tsKey").focus()};
 $("usbKb").onclick=async()=>{await post("/api/usb/keyboard",{}).catch(()=>{});status()};
@@ -480,15 +503,27 @@ $("lang").onclick=()=>{L=L=="sv"?"en":"sv";localStorage.fnLang=L;texts()};
 const fill=(k)=>t(k).replaceAll("{s}",W.ssid).replace("{ip}",S?S.ip:"");
 function view(v){W.view=v;paintWifi()}
 function paintWifi(){for(const k of["Now","List","Pass","Busy","Done","Fail","Lost"])$("w"+k).hidden=W.view!=k.toLowerCase();
- if(W.view=="now"&&S){W.ssid=S.ssid;$("wNowT").textContent=fill("sOkW");$("wNowD").textContent=fill("wNowD")}
+ if(W.view=="now"&&S){W.ssid=S.ssid;$("wNowT").textContent=fill("sOkW");$("wNowD").textContent=fill("wNowD");
+  $("wNowS").textContent=S.rssi?t("wSig").replace("{q}",t(S.rssi>-60?"sigStrong":S.rssi>-70?"sigGood":S.rssi>-80?"sigFair":"sigWeak")).replace("{n}",S.rssi):""}
+ paintKnown();
  if(W.view=="pass"){$("wNameBox").hidden=!W.manual;$("wPassT").textContent=W.manual?t("wManual"):fill(W.open?"wOpenNet":"wPassFor");$("pass").closest(".pw").hidden=W.open&&!W.manual;$("pass").closest(".pw").previousElementSibling.hidden=!W.manual;$("wPassT").classList.toggle("big",!W.manual)}
  if(W.view=="busy")$("wBusyT").textContent=fill("wBusyT");
  if(W.view=="done"){$("wDoneT").textContent=fill("wDoneT");$("wDoneD").textContent=fill("wDoneD")}
- if(W.view=="fail"&&S){$("wFailT").textContent=fill("wFailT");$("wFailD").textContent=(T[L].r[S.reason]||"")+" "+t("dBad")}
+ if(W.view=="fail"&&S){$("wFailT").textContent=fill("wFailT");$("wFailD").textContent=(T[L].r[S.joinFailed==W.ssid?S.joinReason:S.reason]||"")+" "+t("dBad")}
  if(W.view=="lost")$("wLostD").textContent=fill("wLostD")}
+// The networks the box knows, each with a button to forget it. Rebuilt only when something in it changed.
+let knownKey="";
+function paintKnown(){const nets=S&&S.nets||[];$("wKnown").hidden=!nets.length||!(W.view=="now"||W.view=="list");
+ const key=JSON.stringify(nets)+"|"+(S?S.ssid+S.wifi:"")+L;if(key==knownKey)return;knownKey=key;$("known").textContent="";
+ for(const n of nets){const row=document.createElement("div");row.style.cssText="display:flex;align-items:center;gap:.8rem;margin-top:.5rem";
+  const name=document.createElement("span");name.style.cssText="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+  name.textContent=n+(S.wifi=="connected"&&S.ssid==n?" · "+t("wInUse"):"");
+  const b=document.createElement("button");b.type="button";b.className="quiet";b.style.cssText="width:auto;padding:.45rem .9rem";b.textContent=t("wForget");
+  b.onclick=async()=>{if(!confirm(t("wForgetAsk").replace("{s}",n)))return;await post("/api/wifi/forget",{ssid:n}).catch(()=>{});status()};
+  row.append(name,b);$("known").append(row)}}
 // Called after every status reading: moves the section on when the box reports the outcome.
 function wifiStep(){const age=Date.now()-W.since;
- if(W.view=="busy"){if(S&&S.ssid==W.ssid&&S.wifi=="connected")view("done");else if(S&&S.ssid==W.ssid&&S.wifi=="failed"&&age>4000)view("fail");else if(!S&&W.misses>=12)view("lost")}
+ if(W.view=="busy"){if(S&&S.ssid==W.ssid&&S.wifi=="connected")view("done");else if(S&&age>4000&&(S.joinFailed==W.ssid||(S.ssid==W.ssid&&S.wifi=="failed")))view("fail");else if(!S&&W.misses>=12)view("lost")}
  else if(W.view=="lost"&&S){if(S.wifi=="connected")view("done");else if(S.wifi=="failed")view("fail")}
  else if(W.view==""&&S){if(S.wifi=="connected")view("now");else{view("list");scan()}}
  else if(W.view=="now"&&S&&S.wifi!="connected"&&age>4000){view("list");scan()}

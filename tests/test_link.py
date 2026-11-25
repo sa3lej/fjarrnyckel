@@ -36,6 +36,10 @@ class Rig:
     def mode_and_freq(self):
         return (0x03 if self.cw else 0x01, 7_018_000)
 
+    def select_cw(self):
+        self.asked = getattr(self, "asked", 0) + 1
+        self.cw = True
+
 
 class World:
     """Client, network and receiver on one event queue. Times are server microseconds."""
@@ -346,6 +350,53 @@ class LinkTests(unittest.TestCase):
         _, end, plan = world.key("E")
         world.run(end + 300_000)
         self.assertEqual(world.receiver.take_summary()["edges_played"], len(plan))
+
+    def test_the_box_can_put_the_radio_in_cw_once_per_asking(self):
+        rig = Rig(cw=False)
+        world = World(rig=rig)
+        world.push(world.now, "tick")
+        world.run(world.now + 500_000)
+        self.assertFalse(world.client.status.flags & proto.ST_CW_MODE)
+        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        world.run(world.now + 3_000_000)          # the command rode in some twenty packets
+        self.assertEqual(rig.asked, 1)
+        self.assertTrue(world.client.status.flags & proto.ST_CW_MODE)
+        _, end, plan = world.key("TEST")
+        world.run(end + 300_000)
+        self.assertEqual(len(world.receiver.played), len(plan))
+        # The operator leaves CW by the radio: the old command does not come back, a new one does.
+        rig.cw = False
+        world.run(world.now + 3_000_000)
+        self.assertEqual(rig.asked, 1)
+        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        world.run(world.now + 1_000_000)
+        self.assertEqual(rig.asked, 2)
+
+    def test_a_recorded_command_cannot_be_replayed(self):
+        rig = Rig(cw=False)
+        world = World(rig=rig)
+        world.push(world.now, "tick")
+        world.run(world.now + 500_000)
+        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        world.run(world.now + 3_000_000)
+        recorded = [d for d in world.captured if proto.unpack_key(KEY, d).command]
+        self.assertTrue(recorded)
+        rig.cw = False
+        world.client_sending = False
+        world.run(world.now + 30_000_000)         # every nonce the recording carries is long out of date
+        for data in recorded:
+            world.receiver.on_packet(data, ("thief", 2), world.now)
+        self.assertEqual(rig.asked, 1)
+        self.assertFalse(rig.cw)
+
+    def test_the_receiver_can_be_told_to_leave_the_mode_alone(self):
+        rig = Rig(cw=False)
+        world = World(rig=rig, cw_from_box=False)
+        world.push(world.now, "tick")
+        world.run(world.now + 500_000)
+        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        world.run(world.now + 3_000_000)
+        self.assertFalse(rig.cw)
 
 
 if __name__ == "__main__":

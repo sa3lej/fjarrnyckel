@@ -14,6 +14,7 @@
 #define PIN_HP_DIN  14
 
 // ---- settings (kept in flash) ----
+#define WIFI_MORE 7     // with the first one: eight networks, in a settings record of fixed size
 typedef struct {
   char ssid[33];
   char pass[65];
@@ -44,6 +45,10 @@ typedef struct {
   uint8_t led_level;    // status light brightness 1-100, 10 = the original level; 0 (older copies) = 10
   uint8_t link_delay;   // playout buffer asked of the receiver, 10-200 ms; 0 = the receiver's own default (25 ms)
   uint8_t radio_spk;    // sound from the computer in the speaker, 0-100; 0 = headphones only (and older copies)
+  // More Wi-Fi networks the box knows. ssid/pass at the top is the one it joined last; these follow in the order
+  // they were last used, without gaps. The box joins whichever it finds, the strongest first.
+  char more_ssid[WIFI_MORE][33];
+  char more_pass[WIFI_MORE][65];
 } settings_t;
 extern settings_t settings;
 void settings_load(void);
@@ -69,7 +74,13 @@ const char *net_ip(void);                 // our address on the Wi-Fi network, "
 const char *net_ap_name(void);            // name of the setup network, "" when it is off
 const char *net_fail_reason(void);
 void net_start(void);
-void net_join(const char *ssid, const char *pass);   // save and try new Wi-Fi details
+void net_join(const char *ssid, const char *pass);   // try a network from the page; it is saved once it has connected
+void net_forget(const char *ssid);        // takes a network off the list of known ones
+const char *net_ssid(void);               // the network the box is on, or is trying
+int net_rssi(void);                       // signal strength of that network in dBm, 0 when not connected
+int net_known(char *json, int size);      // writes a JSON array of the known networks' names
+const char *net_join_failed(void);        // the network last asked for from the page, if it did not connect; else ""
+const char *net_join_reason(void);
 int net_scan(char *json, int size);       // writes a JSON array of networks in range
 
 // ---- the keying link to the receiver ----
@@ -83,11 +94,17 @@ typedef struct {
   bool tailscale;        // the link runs through Tailscale
   uint16_t delay_ms;     // the playout buffer the receiver is using right now
   uint8_t receiver;      // the receiver's version, 0 = from before it had one
+  uint8_t mode;          // the radio's mode as its CI-V byte (0 LSB, 1 USB, 3 CW, ...), valid with rig_valid
+  // The last stretch of keying (a stretch ends after a minute without a key movement):
+  uint32_t k_edges;      // key movements sent to the receiver
+  uint16_t k_late, k_lost;   // of those, how many reached it too late, or never
+  uint16_t k_peak_ms;    // the longest buffer the receiver had to use during it
 } link_info_t;
 void link_start(void);
 void link_restart(void);                  // after the link settings changed
 void link_edge(int64_t t_us, bool down);  // called by the keyer on every key change
 link_info_t link_info(void);
+void link_select_cw(void);                // asks the receiver to put the radio in CW
 bool link_uses_tailscale(void);          // the link holds a socket on the Tailscale network
 
 // ---- Tailscale ----

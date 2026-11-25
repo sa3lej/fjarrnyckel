@@ -263,12 +263,28 @@ instant; the keying path to the radio is not touched.
 The sound card runs at 48 kHz, 16-bit mono. The box follows the computer's clock: it plays the incoming sound a
 few hundredths of a percent faster or slower to keep about 8 ms buffered, so the two clocks never drift apart. The computer's own volume and mute work as usual.
 
+## Several Wi-Fi networks
+
+The box remembers up to eight networks (Connection → Wi-Fi → **Known networks**): at home, at the summerhouse,
+your phone's hotspot. It joins whichever it finds, the strongest first, and a network is only remembered once
+the box has actually connected to it. **Join another network** adds one, **Forget** takes one away. The card
+also shows how strong the signal is.
+
+## Switching the radio to CW from the box
+
+Keying is only on while the radio is in CW. When it is in another mode, the box's page shows which, with a
+button **Switch the radio to CW**, so you do not need wfview in front of you to get on the air. It needs
+receiver version 2 or later; see the receiver's guide for how to turn it off there.
+
 ## The buffer, and the receiver's version
 
 The receiver holds every key movement for a short, fixed time before it keys the radio; that is what evens
 out the network. The time is set on the box's page (Connection → Radio link → **Buffer**, 10 to 200 ms, 25
-to begin with). Lower is quicker; raise it if the page shows movements arriving late. The page also shows the
-buffer the receiver is using right now, which is longer for a while after late arrivals.
+to begin with). Lower is quicker; raise it if movements arrive late. The page tells how your last stretch of
+keying went (a stretch ends after a minute without a key movement): how many key movements, and how many of
+them were late or lost. When some were late it offers the buffer that would have covered them, with one button
+to set it. It also shows the buffer the receiver is using right now, which is longer for a while after late
+arrivals.
 
 The same card shows the receiver's version, and says so when the receiver is older than the box's firmware
 expects. Update it on the computer by the radio: `git pull` in its `fjarrnyckel` folder, then

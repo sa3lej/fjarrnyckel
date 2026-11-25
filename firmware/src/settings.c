@@ -20,6 +20,7 @@ static void terminate(settings_t *s) {
   s->ssid[sizeof s->ssid - 1] = s->pass[sizeof s->pass - 1] = 0;
   s->link_host[sizeof s->link_host - 1] = s->link_key[sizeof s->link_key - 1] = 0;
   s->ts_key[sizeof s->ts_key - 1] = 0;
+  for (int i = 0; i < WIFI_MORE; i++) s->more_ssid[i][32] = s->more_pass[i][64] = 0;
 }
 
 void settings_load(void) {
