@@ -91,11 +91,13 @@ the radio's *USB Keying (CW)* menu to DTR and accepts keying. When you leave CW,
 or the receiver stops, it sets the menu back to OFF. In any other mode the
 receiver refuses to key.
 
-You select CW in wfview, or from the box: when the radio is in another mode, the
-box's page shows **Switch the radio to CW**. The receiver then asks wfview for CW
-and changes nothing else; the filter stays as the radio had it. Leaving CW is
-done in wfview. Start the receiver with `--no-cw-from-box` if selecting CW by
-the radio should stay the only switch.
+You select CW in wfview, or from the box: its page has buttons for the radio's
+mode (CW, USB, LSB), frequency and band, and one that starts the antenna tuner.
+The receiver passes mode and frequency to wfview and changes nothing else; the
+filter stays as the radio had it. The tuner is started with a CI-V command on
+the radio port, and the radio transmits while it tunes. Start the receiver with
+`--no-radio-control` if it should do keying only, with wfview as the only way
+to change the radio.
 
 ## Radios
 

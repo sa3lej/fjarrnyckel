@@ -104,7 +104,7 @@ void link_start(void);
 void link_restart(void);                  // after the link settings changed
 void link_edge(int64_t t_us, bool down);  // called by the keyer on every key change
 link_info_t link_info(void);
-void link_select_cw(void);                // asks the receiver to put the radio in CW
+void link_radio(uint8_t command, uint32_t arg);   // something for the radio that is not keying: CWL2_CMD_*
 bool link_uses_tailscale(void);          // the link holds a socket on the Tailscale network
 
 // ---- Tailscale ----

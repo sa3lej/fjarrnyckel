@@ -23,7 +23,8 @@ ACTIVE_US = 2_000_000      # ACTIVE for this long after an edge
 HEARTBEAT_ACTIVE_US = 20_000
 HEARTBEAT_IDLE_US = 100_000
 EDGE_REPEATS_US = (3_000, 8_000)   # an edge packet is sent again this long after the edge
-COMMAND_US = 2_000_000     # a command rides in every packet for this long
+COMMAND_US = 1_000_000     # a command is sent again every COMMAND_EVERY_US for this long
+COMMAND_EVERY_US = 100_000
 
 
 class Client:
@@ -43,8 +44,10 @@ class Client:
         self.status = None
         self.rtt = []
         self.command = 0
+        self.command_arg = 0
         self.command_seq = 0
         self.command_until = 0
+        self.command_next = 0
 
     def edge(self, when, down):
         """Record a key edge that happened at client time `when`."""
@@ -66,11 +69,21 @@ class Client:
             return True
         return now - self.last_sent >= (HEARTBEAT_ACTIVE_US if self.active(now) else HEARTBEAT_IDLE_US)
 
-    def give_command(self, command, now):
-        """Ask the receiver for something, e.g. proto.CMD_SELECT_CW; it rides along for two seconds."""
-        self.command = command
-        self.command_seq = (self.command_seq + 1) & 0xFF
+    def give_command(self, command, arg, now):
+        """Ask the receiver for something for the radio, e.g. (proto.CMD_SET_MODE, 0x03). It goes out in its own
+        packets, at once and again for a second; a newer command takes the place of one still being repeated."""
+        self.command, self.command_arg = command, arg
+        self.command_seq = (self.command_seq + 1) & 0xFFFF
         self.command_until = now + COMMAND_US
+        self.command_next = now
+
+    def command_due(self, now):
+        return bool(self.command) and self.command_next <= now < self.command_until
+
+    def command_packet(self, now):
+        self.command_next = now + COMMAND_EVERY_US
+        return proto.pack_command(self.key, proto.Command(
+            self.command, self.command_seq, self.session, now, self.nonce, self.command_arg))
 
     def packet(self, now):
         while self.edges and now - self.edges[0][1] > REPEAT_US and not (len(self.edges) == 1 and self.key_down):
@@ -81,8 +94,7 @@ class Client:
         self.last_sent = now
         return proto.pack_key(self.key, proto.KeyPacket(
             proto.FLAG_ACTIVE if self.active(now) else 0, self.wpm, self.session, self.seq, now, self.nonce,
-            first, self.delay_ms, [(when, down) for _, when, down in chosen],
-            self.command if now < self.command_until else 0, self.command_seq))
+            first, self.delay_ms, [(when, down) for _, when, down in chosen]))
 
     def on_status(self, data, now):
         status = proto.unpack_status(self.key, data)

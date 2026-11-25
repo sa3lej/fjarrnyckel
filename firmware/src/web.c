@@ -187,9 +187,13 @@ static esp_err_t post_link(httpd_req_t *req) {
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
-// Asks the receiver to put the radio in CW, which switches keying on. For when wfview is out of reach.
-static esp_err_t post_radio_cw(httpd_req_t *req) {
-  link_select_cw();
+// The radio from the box, for when wfview is out of reach: mode=0|1|3 (LSB, USB, CW as CI-V bytes), freq=Hz, tune=1.
+static esp_err_t post_radio(httpd_req_t *req) {
+  char body[80], v[16];
+  if (read_body(req, body, sizeof body) < 0) return ESP_FAIL;
+  if (field(body, "mode", v, sizeof v)) { int m = atoi(v); if (m == 0 || m == 1 || m == 3) link_radio(CWL2_CMD_SET_MODE, (uint32_t)m); }
+  if (field(body, "freq", v, sizeof v)) { long hz = strtol(v, NULL, 10); if (hz > 0) link_radio(CWL2_CMD_SET_FREQ, (uint32_t)hz); }
+  if (field(body, "tune", v, sizeof v) && atoi(v)) link_radio(CWL2_CMD_TUNE, 0);
   httpd_resp_set_type(req, "application/json");
   return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
@@ -371,7 +375,7 @@ void web_start(void) {
     { .uri = "/api/backup", .method = HTTP_POST, .handler = post_backup },
     { .uri = "/api/restore", .method = HTTP_POST, .handler = post_restore },
     { .uri = "/api/usb/keyboard", .method = HTTP_POST, .handler = post_usb_keyboard },
-    { .uri = "/api/radio/cw", .method = HTTP_POST, .handler = post_radio_cw },
+    { .uri = "/api/radio", .method = HTTP_POST, .handler = post_radio },
     { .uri = "/api/wifi/forget", .method = HTTP_POST, .handler = post_wifi_forget },
   };
   new_session();

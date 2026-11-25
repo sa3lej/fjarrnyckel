@@ -22,12 +22,8 @@ KEY packet, client to server (40-byte header, nev x 8-byte edges, tag):
   nonce     8   last nonce received in a STATUS (0 = none yet)
   ev_idx0   4   index of the first edge in this packet
   delay_ms  2   requested playout delay, 0 = server default
-  command   1   0 = none; CMD_SELECT_CW = put the radio in CW
-  cmd_seq   1   raised by the client for every new command
+  reserved  2   (box firmware 0.13.0 put a command here; see KEYCMD_SELECT_CW)
   edges     8n  (t_us << 1) | down   - time of the edge, new key state
-
-  A command rides in every packet for two seconds after it was given, so a lost packet does not lose it;
-  the server carries out each (session, cmd_seq) once.
 
   Client rules: a packet at once on every edge, sent again 3 ms and 8 ms later
   so one lost packet costs no time; a heartbeat every 20 ms while ACTIVE and
@@ -53,6 +49,23 @@ STATUS packet, server to client (48 bytes, tag):
   rx_pkts   2   accepted KEY packets
 
   The client measures the round trip as now - echo_t - echo_age.
+
+COMMAND packet, client to server (36 bytes, tag): something for the radio that is not keying
+
+  magic     4   "CWL2"
+  type      1   3
+  command   1   CMD_SET_MODE, CMD_SET_FREQ or CMD_TUNE
+  cmd_seq   2   raised by the client for every new command
+  session   4   the client's session; the server must be running it
+  t_send    8   client clock, microseconds
+  nonce     8   last nonce received in a STATUS
+  arg       4   the mode as its CI-V byte, or the frequency in Hz
+  reserved  4
+
+  Keying never waits for a command and never shares a packet or a counter with one: KEY packets are as they
+  always were, and the server carries a command out away from its keying loop. The client sends a command at
+  once and again every 100 ms for a second, so a lost packet does not lose it; the server carries out a
+  cmd_seq once, and only one that is newer than the last, so a recorded command cannot be played again.
 """
 import collections
 import hashlib
@@ -67,9 +80,14 @@ MAX_EDGES = 8
 
 # Raised with every receiver change the box should be able to tell apart. The box shows it, and says so when the
 # receiver is older than the one its firmware was made for (CWL2_RECEIVER_LATEST in firmware/src/cwl2.h).
-RECEIVER_VERSION = 2     # 2: carries out CMD_SELECT_CW
+RECEIVER_VERSION = 3     # 2: CW on request (in the KEY packet, box 0.13.0). 3: COMMAND packets
 
-CMD_SELECT_CW = 1        # put the radio in CW, so keying comes on
+TYPE_COMMAND = 3
+CMD_SET_MODE = 1         # arg: the mode as its CI-V byte, one of MODES_SETTABLE
+CMD_SET_FREQ = 2         # arg: the frequency in Hz
+CMD_TUNE = 3             # start the antenna tuner; the radio transmits while it tunes
+MODES_SETTABLE = {0x00: "LSB", 0x01: "USB", 0x03: "CW"}
+KEYCMD_SELECT_CW = 1     # box firmware 0.13.0 only: CW asked for in the KEY packet's spare bytes
 
 FLAG_ACTIVE = 0x01
 
@@ -82,6 +100,7 @@ ST_MUTED = 0x40         # the server is waiting for a word gap
 KEY_HEAD = struct.Struct("!4sBBBBIIQQIHBB")
 EDGE = struct.Struct("!Q")
 STATUS_BODY = struct.Struct("!4sBBBBIIQIQIHHHH")
+COMMAND_BODY = struct.Struct("!4sBBHIQQII")
 
 KeyPacket = collections.namedtuple("KeyPacket", "flags wpm session seq t_send nonce ev_idx0 delay_ms edges command command_seq",
                                    defaults=(0, 0))
@@ -145,6 +164,32 @@ def unpack_status(key, data):
     if magic != MAGIC or kind != TYPE_STATUS:
         return None
     return Status(flags, mode, session, seq, echo_t, echo_age, nonce, freq_hz, delay_ms, late, lost, rx_pkts, version)
+
+
+Command = collections.namedtuple("Command", "command command_seq session t_send nonce arg")
+
+
+def pack_command(key, command):
+    body = COMMAND_BODY.pack(MAGIC, TYPE_COMMAND, command.command & 0xFF, command.command_seq & 0xFFFF, command.session,
+                             command.t_send, command.nonce, command.arg & 0xFFFFFFFF, 0)
+    return body + tag(key, body)
+
+
+def unpack_command(key, data):
+    if len(data) != COMMAND_BODY.size + TAG_LEN:
+        return None
+    body, received = data[:-TAG_LEN], data[-TAG_LEN:]
+    if not hmac.compare_digest(tag(key, body), received):
+        return None
+    magic, kind, command, command_seq, session, t_send, nonce, arg, _ = COMMAND_BODY.unpack(body)
+    if magic != MAGIC or kind != TYPE_COMMAND or session == 0:
+        return None
+    return Command(command, command_seq, session, t_send, nonce, arg)
+
+
+def signed16(value):
+    value &= 0xFFFF
+    return value - 0x10000 if value & 0x8000 else value
 
 
 def signed32(value):

@@ -270,11 +270,18 @@ your phone's hotspot. It joins whichever it finds, the strongest first, and a ne
 the box has actually connected to it. **Join another network** adds one, **Forget** takes one away. The card
 also shows how strong the signal is.
 
-## Switching the radio to CW from the box
+## The radio from the box
 
-Keying is only on while the radio is in CW. When it is in another mode, the box's page shows which, with a
-button **Switch the radio to CW**, so you do not need wfview in front of you to get on the air. It needs
-receiver version 2 or later; see the receiver's guide for how to turn it off there.
+Keying is only on while the radio is in CW. So that you do not need wfview in front of you to get on the air,
+the box's overview has a card for the radio: its frequency and mode, buttons for **CW**, **USB** and **LSB**,
+steps of 100 Hz and 1 kHz, a frequency to type, a button for each band from 160 to 6 m, and **Tune the antenna**,
+which starts the radio's antenna tuner (the radio transmits while it tunes). A band button goes to where you
+last were on that band (the page remembers, per browser), or to the band's CW or phone part the first time.
+
+These travel to the receiver as commands in packets of their own. The key's packets, and so the timing of your
+keying, are exactly what they are without them, and the receiver carries a command out away from its keying
+loop. It needs receiver version 3 or later; see the receiver's guide for how to turn it off there. Mode and
+frequency are tried on an IC-7300 through wfview; the tuner button is not tried yet.
 
 ## The buffer, and the receiver's version
 

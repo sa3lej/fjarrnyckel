@@ -35,8 +35,16 @@ void cwl2_hmac(const uint8_t *key, size_t key_len, const uint8_t *data, size_t l
 }
 
 link_info_t link_info(void) { return info; }
-static volatile bool want_cw;
-void link_select_cw(void) { want_cw = true; if (task) xTaskNotifyGive(task); }
+// Things for the radio that are not keying wait here for the link task. They go out in packets of their own,
+// after any key movement that is waiting, and nothing about the key movements' packets changes.
+typedef struct { uint8_t command; uint32_t arg; } radio_t;
+static QueueHandle_t radio;
+void link_radio(uint8_t command, uint32_t arg) {
+  if (!radio) return;
+  radio_t r = { command, arg };
+  xQueueSend(radio, &r, 0);
+  if (task) xTaskNotifyGive(task);
+}
 
 // The last stretch of keying: counted here, from the receiver's running totals, so the page can say how that
 // stretch went (and not how every stretch since the receiver started went). A stretch ends after a minute
@@ -107,7 +115,7 @@ static void session(uint32_t gen) {
     fcntl(path.sock, F_SETFL, fcntl(path.sock, F_GETFL, 0) | O_NONBLOCK);
   }
   cwl2_init(&client, (const uint8_t *)settings.link_key, strlen(settings.link_key), esp_random() | 1);
-  xQueueReset(edges);
+  xQueueReset(edges); xQueueReset(radio);
   ESP_LOGI(TAG, "talking to the receiver at %s port %u%s", settings.link_host, settings.link_port, path.ts ? " through Tailscale" : "");
   int64_t heard = 0;
   set_state(LINK_NO_ANSWER);
@@ -126,7 +134,12 @@ static void session(uint32_t gen) {
       }
       cwl2_edge(&client, (uint64_t)e.t, e.down); send_packet(&path, esp_timer_get_time());
     }
-    if (want_cw) { want_cw = false; cwl2_command(&client, CWL2_CMD_SELECT_CW, (uint64_t)now); send_packet(&path, now); }
+    radio_t r;
+    while (xQueueReceive(radio, &r, 0)) cwl2_command(&client, r.command, r.arg, (uint64_t)now);
+    if (cwl2_command_due(&client, (uint64_t)now)) {
+      uint8_t pkt[CWL2_COMMAND_LEN]; size_t n = cwl2_command_packet(&client, (uint64_t)now, pkt);
+      if (path.ts) microlink_udp_send(path.ts, path.ts_ip, path.port, pkt, n); else send(path.sock, pkt, n, 0);
+    }
     if (cwl2_due(&client, (uint64_t)now)) send_packet(&path, now);
     uint8_t buf[96]; int n;
     while ((n = receive(&path, buf, sizeof buf)) > 0) {
@@ -166,5 +179,6 @@ static void link_task(void *arg) {
 
 void link_start(void) {
   edges = xQueueCreate(64, sizeof(edge_t));
+  radio = xQueueCreate(8, sizeof(radio_t));
   xTaskCreatePinnedToCore(link_task, "link", 6144, NULL, 19, &task, 0);
 }

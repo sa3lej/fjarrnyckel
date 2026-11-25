@@ -36,9 +36,10 @@ class Rig:
     def mode_and_freq(self):
         return (0x03 if self.cw else 0x01, 7_018_000)
 
-    def select_cw(self):
-        self.asked = getattr(self, "asked", 0) + 1
-        self.cw = True
+    def command(self, command, arg):
+        self.commands = getattr(self, "commands", []) + [(command, arg)]
+        if command == proto.CMD_SET_MODE:
+            self.cw = arg == 0x03
 
 
 class World:
@@ -102,6 +103,8 @@ class World:
                 elif kind == "tick":
                     if self.client_sending and self.client.due(self.client_time(self.now)):
                         self.uplink(self.client.packet(self.client_time(self.now)))
+                    if self.client_sending and self.client.command_due(self.client_time(self.now)):
+                        self.uplink(self.client.command_packet(self.client_time(self.now)))
                     self.push(self.now + 1_000, "tick")
         self.now = until
         self.receiver.poll(self.now)
@@ -357,46 +360,92 @@ class LinkTests(unittest.TestCase):
         world.push(world.now, "tick")
         world.run(world.now + 500_000)
         self.assertFalse(world.client.status.flags & proto.ST_CW_MODE)
-        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
-        world.run(world.now + 3_000_000)          # the command rode in some twenty packets
-        self.assertEqual(rig.asked, 1)
+        world.client.give_command(proto.CMD_SET_MODE, 0x03, world.client_time(world.now))
+        world.run(world.now + 3_000_000)          # the command went out some ten times
+        self.assertEqual(rig.commands, [(proto.CMD_SET_MODE, 0x03)])
         self.assertTrue(world.client.status.flags & proto.ST_CW_MODE)
         _, end, plan = world.key("TEST")
         world.run(end + 300_000)
         self.assertEqual(len(world.receiver.played), len(plan))
-        # The operator leaves CW by the radio: the old command does not come back, a new one does.
-        rig.cw = False
-        world.run(world.now + 3_000_000)
-        self.assertEqual(rig.asked, 1)
-        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
-        world.run(world.now + 1_000_000)
-        self.assertEqual(rig.asked, 2)
+        # A frequency, the tuner and another mode each reach the rig once, in the order they were given.
+        for command, arg in ((proto.CMD_SET_FREQ, 7_030_000), (proto.CMD_TUNE, 0), (proto.CMD_SET_MODE, 0x01)):
+            world.client.give_command(command, arg, world.client_time(world.now))
+            world.run(world.now + 1_500_000)
+        self.assertEqual(rig.commands[1:], [(proto.CMD_SET_FREQ, 7_030_000), (proto.CMD_TUNE, 0), (proto.CMD_SET_MODE, 0x01)])
+
+    def test_commands_and_keying_do_not_touch_each_other(self):
+        quiet = World()
+        quiet.link_up()
+        _, end, plan = quiet.key("PARIS PARIS")
+        quiet.run(end + 500_000)
+        busy = World(rig=Rig())
+        busy.link_up()
+        start, end, plan = busy.key("PARIS PARIS")
+        at = start
+        while at < end:                           # a new command every 150 ms, all through the keying
+            busy.run(at)
+            busy.client.give_command(proto.CMD_SET_FREQ, 7_030_000 + at % 1000, busy.client_time(busy.now))
+            at += 150_000
+        busy.run(end + 500_000)
+        self.assertGreater(len(busy.receiver.rig.commands), 10)
+        self.assertEqual(len(busy.receiver.played), len(plan))
+        self.assertEqual(busy.receiver.late, 0)
+        # Every edge is played at the same microsecond as with no commands at all.
+        self.assertEqual([(actual, down) for _, actual, down, _ in busy.receiver.played],
+                         [(actual, down) for _, actual, down, _ in quiet.receiver.played])
 
     def test_a_recorded_command_cannot_be_replayed(self):
         rig = Rig(cw=False)
         world = World(rig=rig)
         world.push(world.now, "tick")
         world.run(world.now + 500_000)
-        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        world.client.give_command(proto.CMD_SET_MODE, 0x03, world.client_time(world.now))
         world.run(world.now + 3_000_000)
-        recorded = [d for d in world.captured if proto.unpack_key(KEY, d).command]
-        self.assertTrue(recorded)
-        rig.cw = False
+        world.client.give_command(proto.CMD_SET_FREQ, 14_060_000, world.client_time(world.now))
+        world.run(world.now + 3_000_000)
+        recorded = [d for d in world.captured if proto.unpack_command(KEY, d)]
+        self.assertGreater(len(recorded), 10)
+        done = list(rig.commands)
+        for data in recorded:                     # at once, while their nonces are still good: none is newer
+            world.receiver.on_packet(data, ("thief", 2), world.now)
+        self.assertEqual(rig.commands, done)
         world.client_sending = False
-        world.run(world.now + 30_000_000)         # every nonce the recording carries is long out of date
+        world.run(world.now + 30_000_000)         # and later, when every nonce they carry is out of date
         for data in recorded:
             world.receiver.on_packet(data, ("thief", 2), world.now)
-        self.assertEqual(rig.asked, 1)
-        self.assertFalse(rig.cw)
+        self.assertEqual(rig.commands, done)
 
-    def test_the_receiver_can_be_told_to_leave_the_mode_alone(self):
+    def test_a_command_from_another_session_is_refused(self):
         rig = Rig(cw=False)
-        world = World(rig=rig, cw_from_box=False)
+        world = World(rig=rig)
         world.push(world.now, "tick")
         world.run(world.now + 500_000)
-        world.client.give_command(proto.CMD_SELECT_CW, world.client_time(world.now))
+        stranger = proto.pack_command(KEY, proto.Command(proto.CMD_TUNE, 1, 0x7777, 0, world.receiver.nonce, 0))
+        world.receiver.on_packet(stranger, ("other", 3), world.now)
+        self.assertFalse(hasattr(rig, "commands"))
+
+    def test_the_receiver_can_be_told_to_leave_the_radio_alone(self):
+        rig = Rig(cw=False)
+        world = World(rig=rig, radio_control=False)
+        world.push(world.now, "tick")
+        world.run(world.now + 500_000)
+        world.client.give_command(proto.CMD_SET_MODE, 0x03, world.client_time(world.now))
         world.run(world.now + 3_000_000)
         self.assertFalse(rig.cw)
+
+    def test_box_firmware_0_13_0_still_gets_cw(self):
+        rig = Rig(cw=False)
+        world = World(rig=rig)
+        world.push(world.now, "tick")
+        world.run(world.now + 500_000)
+        old = world.client.packet                 # that firmware put the command in its KEY packets
+        def packet(now):
+            data = old(now)
+            p = proto.unpack_key(KEY, data)
+            return proto.pack_key(KEY, p._replace(command=proto.KEYCMD_SELECT_CW, command_seq=1))
+        world.client.packet = packet
+        world.run(world.now + 2_000_000)
+        self.assertEqual(rig.commands, [(proto.CMD_SET_MODE, 0x03)])
 
     def test_a_refused_client_does_not_silence_the_answers_to_the_real_one(self):
         world = World()

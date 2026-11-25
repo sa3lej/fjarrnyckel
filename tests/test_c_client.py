@@ -69,7 +69,7 @@ class CClientTests(unittest.TestCase):
         self.assertEqual(client["receiver"], proto.RECEIVER_VERSION)
         self.assertEqual(client["delay_ms"], 25)
 
-    def test_a_command_rides_for_two_seconds(self):
+    def test_a_command_goes_in_its_own_packets_for_a_second(self):
         cc = shutil.which("cc")
         tool = os.path.join(self.dir, "cwl2_command")
         built = subprocess.run([cc, "-Wall", "-O2", "-I" + os.path.join(ROOT, "firmware/src"), "-o", tool,
@@ -77,10 +77,15 @@ class CClientTests(unittest.TestCase):
                                 "-lcrypto"], capture_output=True, text=True)
         self.assertEqual(built.returncode, 0, built.stderr)
         key = "a-test-key-of-enough-length"
-        lines = subprocess.run([tool, key], capture_output=True, text=True).stdout.split()
-        before, during, after = (proto.unpack_key(key.encode(), bytes.fromhex(line)) for line in lines)
-        self.assertEqual((before.command, during.command, after.command), (0, proto.CMD_SELECT_CW, 0))
-        self.assertEqual(during.command_seq, 1)
+        packets = [bytes.fromhex(line) for line in subprocess.run([tool, key], capture_output=True, text=True).stdout.split()]
+        before, after = (proto.unpack_key(key.encode(), packets[i]) for i in (0, -1))
+        commands = [proto.unpack_command(key.encode(), data) for data in packets[1:-1]]
+        self.assertEqual(len(commands), 10)       # at once, then every 100 ms for a second
+        self.assertTrue(all(c == commands[0]._replace(t_send=c.t_send) for c in commands))
+        self.assertEqual((commands[0].command, commands[0].arg, commands[0].command_seq, commands[0].session),
+                         (proto.CMD_SET_FREQ, 7_030_000, 1, 0x1234))
+        # The KEY packets around it carry nothing of it, and count on as if it had not been there.
+        self.assertEqual((before.command, after.command, after.seq - before.seq), (0, 0, 1))
 
     def test_the_buffer_the_client_asks_for_is_used(self):
         client, summary = self.run_pair("E", "60")
