@@ -31,7 +31,9 @@ Everything is set up from the box's own web page, on a phone or a computer: Wi-F
 the box, no computer needed on your side), the receiver, the keyer and the sidetone. It also installs
 updates and makes backups. English and Swedish.
 
-<p align="center"><img src="docs/build/interface.png" width="900" alt="The box's page: overview with link status, the Tailscale connection with relay choice, and the key settings"></p>
+<p align="center"><img src="docs/build/interface-wide.png" width="900" alt="The box's page on a computer: link status, the radio with its frequency dial, mode, bands and antenna tuner, the three connections and the quick settings"></p>
+
+<p align="center"><img src="docs/build/interface.png" width="900" alt="The box's page on a phone: the overview with the radio, the Wi-Fi card with its known networks, and the key settings"></p>
 
 ## Status
 
