@@ -48,7 +48,26 @@ select{cursor:pointer}input:focus-visible,button:focus-visible,select:focus-visi
 .pw{position:relative}.pw button{position:absolute;right:.3rem;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--dim);font:inherit;font-size:.85rem;padding:.4rem .6rem;cursor:pointer}
 .main{width:100%;box-sizing:border-box;margin-top:1rem;font-family:inherit;font-size:1rem;font-weight:600;line-height:1;color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border:0;border-radius:10px;padding:.85rem;cursor:pointer;box-shadow:0 2px 0 #9a7222,0 6px 16px #0006}
 .main:active{transform:translateY(1px);box-shadow:0 1px 0 #9a7222}
-button.quiet{width:100%;font:inherit;color:var(--cream);background:none;border:1px solid var(--line);border-radius:10px;padding:.7rem;cursor:pointer}button.bandb.on{border-color:var(--brass);color:var(--brass2)}
+button.quiet{width:100%;font:inherit;color:var(--cream);background:none;border:1px solid var(--line);border-radius:10px;padding:.7rem;cursor:pointer}
+#rig{margin-bottom:.9rem;padding:.9rem 1rem 1rem}.rigtop,.bandrow,.rigfoot{display:flex;align-items:center;justify-content:space-between;gap:.8rem}
+.chips{display:flex;gap:.3rem}.chips button{font:inherit;font-size:.85rem;color:var(--dim);background:var(--deep);border:1px solid var(--line);border-radius:8px;padding:.32rem .6rem;cursor:pointer;font-variant-numeric:tabular-nums}
+.chips button.on{color:#2A1B00;background:linear-gradient(180deg,var(--brass2),var(--brass));border-color:var(--brass);font-weight:600}
+.dial{display:flex;align-items:stretch;gap:.5rem;margin:.7rem 0 .8rem;outline:none}
+.dial .read{flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:.5rem;background:linear-gradient(180deg,#03121F,#051B2E);border:1px solid var(--line);border-radius:12px;padding:.55rem .6rem;box-shadow:inset 0 2px 10px #000a}
+.dial:focus-visible .read{border-color:var(--brass)}
+#rigDigits{display:flex;align-items:baseline;font:600 clamp(1.7rem,8.4vw,2.5rem)/1.1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass2);text-shadow:0 0 14px #f0c56a55;white-space:nowrap}
+#rigDigits[hidden]{display:none}#rigDigits button{font:inherit;color:inherit;text-shadow:inherit;background:none;border:0;border-bottom:3px solid transparent;border-radius:0;padding:0 .02em;margin:0;cursor:pointer}
+#rigDigits button.on{border-bottom-color:var(--brass2)}#rigDigits .sep{opacity:.55;padding:0 .02em}
+#rigGo{flex:1;min-width:0;border:0;background:none;padding:.25rem 0;font:600 1.5rem/1.2 ui-monospace,Menlo,Consolas,monospace;color:var(--brass2);text-align:center}
+.dial .unit{font:inherit;font-size:.8rem;color:var(--dim);background:none;border:1px solid var(--line);border-radius:6px;padding:.1rem .4rem;cursor:pointer}
+.nudge{flex:none;width:3rem;font-family:inherit;font-size:1.7rem;font-weight:500;line-height:1;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:12px;cursor:pointer;touch-action:none;-webkit-user-select:none;user-select:none}
+.nudge:active{background:var(--line)}
+#rigBands{flex:1;justify-content:space-between}#rigBands button{flex:1;padding:.32rem 0;text-align:center}
+.rigfoot{margin-top:.8rem}#rigTip{flex:1}#rigTune{flex:none;font:inherit;font-size:.88rem;font-weight:600;color:var(--brass2);background:none;border:1px solid var(--brass);border-radius:8px;padding:.4rem .8rem;cursor:pointer}
+#rigTune:disabled{opacity:.6}
+@media(min-width:1000px){main{max-width:66rem}.tab:not([hidden]){columns:2;column-gap:1.4rem}.grp{break-inside:avoid;-webkit-column-break-inside:avoid;display:inline-block;width:100%;margin-bottom:1.1rem}
+ .grp>h2{margin-top:.4rem}.grp>.hero,.grp>#rig{margin-bottom:0}}
+.tab>.grp:first-child>h2{margin-top:.4rem}.grp:not(:has(> :not([hidden]))){display:none}
 #nets{margin:.6rem 0 0;display:grid;gap:.4rem}
 #nets button{display:flex;align-items:center;gap:.7rem;width:100%;font:inherit;color:var(--cream);background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;cursor:pointer;text-align:left}
 #nets button.sel{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass)}
@@ -100,15 +119,13 @@ a.link{display:block;text-decoration:none;text-align:center}a.main{color:#2A1B00
 
 <section class="tab" data-tab="home">
 <div class="status hero" role="status"><span class="lamp" id="hLamp"></span><div><div id="hState">…</div><div id="hDetail"></div></div></div>
-<div class="card" id="rig" style="margin-bottom:1rem" hidden>
- <div style="display:flex;align-items:baseline;justify-content:space-between"><span class="sub" data-t="rigH"></span><span style="font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums"><span id="rigF"></span> <span class="sub">MHz</span></span></div>
- <div class="seg" id="rigMode" style="margin-top:.7rem;grid-template-columns:repeat(3,1fr)"><button type="button" data-v="3">CW</button><button type="button" data-v="1">USB</button><button type="button" data-v="0">LSB</button></div>
- <div id="rigSteps" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin-top:.7rem"></div>
- <label data-t="rigBand" style="margin-top:.9rem"></label>
- <div id="rigBands" style="display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem"></div>
- <div style="display:flex;gap:.5rem;margin-top:.7rem"><input id="rigGo" type="text" inputmode="decimal" autocomplete="off" style="flex:1;min-width:0"><button class="quiet" id="rigGoB" type="button" style="width:auto;padding:.7rem 1.1rem"></button></div>
- <button class="quiet" id="rigTune" type="button" style="margin-top:.7rem"></button>
- <p class="hint" data-t="rigHint"></p>
+<div class="card" id="rig" hidden>
+ <div class="rigtop"><span class="sub" data-t="rigH"></span><div class="chips" id="rigMode"><button type="button" data-v="3">CW</button><button type="button" data-v="1">USB</button><button type="button" data-v="0">LSB</button></div></div>
+ <div class="dial" id="rigDial" tabindex="0"><button type="button" class="nudge" id="rigDn">−</button>
+  <div class="read"><div id="rigDigits"></div><input id="rigGo" type="text" inputmode="decimal" autocomplete="off" hidden><button type="button" class="unit" id="rigUnit">MHz</button></div>
+  <button type="button" class="nudge" id="rigUp">+</button></div>
+ <div class="bandrow"><span class="sub" data-t="rigBand"></span><div class="chips" id="rigBands"></div></div>
+ <div class="rigfoot"><span class="sub" id="rigTip"></span><button type="button" id="rigTune"></button></div>
 </div>
 <div class="card rows">
  <button class="row" type="button" data-go="net" id="rWifi"><span class="lamp"></span><span class="rl">Wi-Fi</span><span class="rv"></span><span class="chev">›</span></button>
@@ -295,7 +312,7 @@ const T={en:{tagline:"Your key, on the air from anywhere",wifi:"Wi-Fi",scan:"Loo
  wNowD:"The box's address: {ip}",wBusyT:"Connecting to {s}…",wBusyD:"This can take half a minute. Your phone may lose the setup network for a moment.",
  wDoneT:"Connected to {s}",wDoneD:"The setup network switches off in a minute. Put this phone on {s} and open the page again at:",
  wFailT:"Could not connect to {s}",wRetry:"Try again",wLostT:"Lost contact with the box",wLostD:"That usually means it has joined {s}. Put this phone on {s} and open the address below. If the setup network comes back, the password was wrong.",key:"Key",straight:"Straight key",paddle:"Paddle",speed:"Speed",sides:"Paddle sides",tipDit:"Tip is dit",ringDit:"Ring is dit",
- link:"Radio link",lWaitCwM:"Connected. The radio is in {m}",lWaitCwB:"Keying comes on when the radio is in CW.",rigH:"The radio",rigBand:"Band",rigGoP:"Frequency, e.g. 7.030",rigGoB:"Go",rigTune:"Tune the antenna (transmits)",rigTuning:"Tuning…",rigHint:"A band button goes to where you last were on that band, or to its CW or phone part the first time. Tuning the antenna makes the radio transmit for a few seconds.",kFine:"Your last keying: {n} key movements, all in time.",kLate:"Your last keying: {n} key movements, {a} late and {b} lost.",bufTry:"A buffer of {x} ms would have covered the late ones.",bufTryB:"Set the buffer to {x} ms",bufL:"Buffer",bufHint:"How long the receiver holds each key movement before it keys the radio, to even out the network. Lower is quicker. Raise it if movements arrive late.",bufNow:"In use now: {n} ms.",recvVer:"Receiver version {n}",recvNone:"The receiver does not tell its version",recvOld:"The receiver on the computer by the radio is older than this box expects. Update it there: run git pull in its fjarrnyckel folder and restart the service.",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file. With Tailscale on, use the computer's Tailscale name or its 100.x address.",lsave:"Save",lsaved:"Saved",
+ link:"Radio link",lWaitCwM:"Connected. The radio is in {m}",lWaitCwB:"Keying comes on when the radio is in CW.",rigH:"The radio",rigBand:"Band",rigGoP:"Type a frequency, e.g. 7.030, and press Enter",rigTip:"Pick a digit, then + and −. Bands return to where you last were.",rigTune:"Tune antenna",rigTuning:"Tuning…",rigTuneD:"Starts the radio\u2019s antenna tuner. The radio transmits for a few seconds.",kFine:"Your last keying: {n} key movements, all in time.",kLate:"Your last keying: {n} key movements, {a} late and {b} lost.",bufTry:"A buffer of {x} ms would have covered the late ones.",bufTryB:"Set the buffer to {x} ms",bufL:"Buffer",bufHint:"How long the receiver holds each key movement before it keys the radio, to even out the network. Lower is quicker. Raise it if movements arrive late.",bufNow:"In use now: {n} ms.",recvVer:"Receiver version {n}",recvNone:"The receiver does not tell its version",recvOld:"The receiver on the computer by the radio is older than this box expects. Update it there: run git pull in its fjarrnyckel folder and restart the service.",lhost:"Receiver address",lport:"Port",lkey:"Shared key",lkeySaved:"Saved. Leave empty to keep it.",lhint:"The address of the computer by the radio, and the same key as in its key file. With Tailscale on, use the computer's Tailscale name or its 100.x address.",lsave:"Save",lsaved:"Saved",
  lOff:"Not set up",lOffD:"Enter the receiver's address and the shared key.",lNoWifi:"Waiting for Wi-Fi",lNotFound:"The address was not found",lNotFoundD:"Check the receiver address.",lNoAnswer:"No answer from the receiver",lNoAnswerD:"Check that the receiver is running and that the address, port and key match.",
  lWaitCw:"Connected. The radio is not in CW",lWaitCwD:"Select CW on the radio to switch keying on.",lWait:"Connected. Waiting for the receiver",lReady:"Ready. Your key goes to the radio",rt:"round trip {n} ms",lateLost:"{a} late, {b} lost",
  tsWhy:"Tailscale connects the box to the computer by the radio across the internet, with nothing to open in a router. Free for personal use.",tsOn:"Connect to Tailscale",tsKeyToggle:"I have an auth key",tsKey:"Auth key",tsKeyHint:"Optional. Without a key you sign in with your Tailscale account in the next step.",
@@ -329,7 +346,7 @@ sv:{tagline:"Din nyckel, i luften var du än är",wifi:"Wi-Fi",scan:"Sök efter 
  wNowD:"Lådans adress: {ip}",wBusyT:"Ansluter till {s}…",wBusyD:"Det kan ta en halv minut. Telefonen kan tappa inställningsnätverket en stund.",
  wDoneT:"Ansluten till {s}",wDoneD:"Inställningsnätverket stängs av om en minut. Koppla telefonen till {s} och öppna sidan igen på:",
  wFailT:"Kunde inte ansluta till {s}",wRetry:"Försök igen",wLostT:"Tappade kontakten med lådan",wLostD:"Det betyder oftast att den har anslutit till {s}. Koppla telefonen till {s} och öppna adressen nedan. Om inställningsnätverket kommer tillbaka var lösenordet fel.",key:"Nyckel",straight:"Telegrafnyckel",paddle:"Paddel",speed:"Takt",sides:"Paddelns sidor",tipDit:"Spets ger kort",ringDit:"Ring ger kort",
- link:"Radiolänk",lWaitCwM:"Ansluten. Radion står på {m}",lWaitCwB:"Nycklingen slås på när radion står på CW.",rigH:"Radion",rigBand:"Band",rigGoP:"Frekvens, t.ex. 7,030",rigGoB:"Gå",rigTune:"Stäm av antennen (sänder)",rigTuning:"Stämmer av…",rigHint:"En bandknapp går dit du senast var på det bandet, eller till dess CW- eller telefonidel första gången. När antennen stäms av sänder radion i några sekunder.",kFine:"Din senaste nyckling: {n} nyckelrörelser, alla i tid.",kLate:"Din senaste nyckling: {n} nyckelrörelser, {a} för sena och {b} förlorade.",bufTry:"En buffert på {x} ms hade räckt för de sena.",bufTryB:"Sätt bufferten till {x} ms",bufL:"Buffert",bufHint:"Hur länge mottagaren håller varje nyckelrörelse innan den nycklar radion, för att jämna ut nätverket. Lägre är snabbare. Höj den om rörelser kommer för sent.",bufNow:"Används nu: {n} ms.",recvVer:"Mottagarens version {n}",recvNone:"Mottagaren talar inte om sin version",recvOld:"Mottagaren på datorn vid radion är äldre än den här lådan räknar med. Uppdatera den där: kör git pull i dess fjarrnyckel-mapp och starta om tjänsten.",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil. Med Tailscale på: använd datorns Tailscale-namn eller dess 100.x-adress.",lsave:"Spara",lsaved:"Sparat",
+ link:"Radiolänk",lWaitCwM:"Ansluten. Radion står på {m}",lWaitCwB:"Nycklingen slås på när radion står på CW.",rigH:"Radion",rigBand:"Band",rigGoP:"Skriv en frekvens, t.ex. 7,030, och tryck Enter",rigTip:"Välj en siffra, sedan + och −. Banden går dit du senast var.",rigTune:"Stäm av antenn",rigTuning:"Stämmer av…",rigTuneD:"Startar radions antennavstämning. Radion sänder i några sekunder.",kFine:"Din senaste nyckling: {n} nyckelrörelser, alla i tid.",kLate:"Din senaste nyckling: {n} nyckelrörelser, {a} för sena och {b} förlorade.",bufTry:"En buffert på {x} ms hade räckt för de sena.",bufTryB:"Sätt bufferten till {x} ms",bufL:"Buffert",bufHint:"Hur länge mottagaren håller varje nyckelrörelse innan den nycklar radion, för att jämna ut nätverket. Lägre är snabbare. Höj den om rörelser kommer för sent.",bufNow:"Används nu: {n} ms.",recvVer:"Mottagarens version {n}",recvNone:"Mottagaren talar inte om sin version",recvOld:"Mottagaren på datorn vid radion är äldre än den här lådan räknar med. Uppdatera den där: kör git pull i dess fjarrnyckel-mapp och starta om tjänsten.",lhost:"Mottagarens adress",lport:"Port",lkey:"Delad nyckel",lkeySaved:"Sparad. Lämna tomt för att behålla den.",lhint:"Adressen till datorn vid radion, och samma nyckel som i dess nyckelfil. Med Tailscale på: använd datorns Tailscale-namn eller dess 100.x-adress.",lsave:"Spara",lsaved:"Sparat",
  lOff:"Inte inställd",lOffD:"Ange mottagarens adress och den delade nyckeln.",lNoWifi:"Väntar på Wi-Fi",lNotFound:"Adressen hittades inte",lNotFoundD:"Kontrollera mottagarens adress.",lNoAnswer:"Inget svar från mottagaren",lNoAnswerD:"Kontrollera att mottagaren är igång och att adress, port och nyckel stämmer.",
  lWaitCw:"Ansluten. Radion står inte i CW",lWaitCwD:"Välj CW på radion för att slå på nycklingen.",lWait:"Ansluten. Väntar på mottagaren",lReady:"Klar. Din nyckel går till radion",rt:"tur och retur {n} ms",lateLost:"{a} sena, {b} tappade",
  tsWhy:"Tailscale kopplar ihop lådan med datorn vid radion över internet, utan att något behöver öppnas i en router. Gratis för privat bruk.",tsOn:"Anslut till Tailscale",tsKeyToggle:"Jag har en auth-nyckel",tsKey:"Auth-nyckel",tsKeyHint:"Valfritt. Utan nyckel loggar du in med ditt Tailscale-konto i nästa steg.",
@@ -375,12 +392,19 @@ const bandOf=f=>BANDS.find(b=>f>=b[1]&&f<=b[2]);
 let rigWant=0,rigAt=0,tuneAt=0;                 // the frequency last asked for, and when: steps add up on it
 const rigNow=()=>Date.now()-rigAt<3000&&rigWant?rigWant:S.freq;
 function rigFreq(hz){hz=Math.round(hz);if(!(hz>0))return;rigWant=hz;rigAt=Date.now();post("/api/radio",{freq:hz}).catch(()=>{});paintRig()}
+// The frequency reads like a radio's display, 14.060.00: MHz, kHz and tens of Hz. One digit is chosen (underlined);
+// + and − (held down, they repeat), the mouse wheel and the arrow keys step by that digit's worth.
+let rigStep=100,rigEdit=false;
+function rigDigits(f){const hz=Math.round(f/10)*10,mhz=Math.floor(hz/1e6),rest=String(hz%1e6).padStart(6,"0"),box=$("rigDigits");box.textContent="";
+ const put=(ch,step)=>{const e=document.createElement(step?"button":"span");e.textContent=ch;if(step){e.type="button";e.className=step==rigStep?"on":"";e.onclick=()=>{rigStep=step;paintRig();$("rigDial").focus()}}else e.className="sep";box.append(e)};
+ [...String(mhz)].forEach((c,i,a)=>put(c,10**(6+a.length-1-i)));put(".");[...rest.slice(0,3)].forEach((c,i)=>put(c,10**(5-i)));put(".");[...rest.slice(3,5)].forEach((c,i)=>put(c,10**(2-i)))}
 function paintRig(){const on=!!S&&S.target==0&&(S.link=="ready"||S.link=="waiting")&&S.rigValid&&S.recv>=3;$("rig").hidden=!on;if(!on)return;
- const f=rigNow(),band=bandOf(f);$("rigF").textContent=(f/1e6).toLocaleString(L=="sv"?"sv-SE":"en-GB",{minimumFractionDigits:4,maximumFractionDigits:4});
+ const f=rigNow(),band=bandOf(f);$("rigDigits").hidden=rigEdit;$("rigGo").hidden=!rigEdit;if(!rigEdit)rigDigits(f);
  if(band&&bandOf(S.freq)==band)try{localStorage["fnBand"+band[0]]=S.freq}catch(e){}
  $("rigMode").querySelectorAll("button").forEach(b=>b.classList.toggle("on",+b.dataset.v==(S.mode==7?3:S.mode)));
  $("rigBands").querySelectorAll("button").forEach(b=>b.classList.toggle("on",!!band&&b.dataset.b==band[0]));
- $("rigGo").placeholder=t("rigGoP");$("rigGoB").textContent=t("rigGoB");const tuning=Date.now()-tuneAt<5000;$("rigTune").textContent=t(tuning?"rigTuning":"rigTune");$("rigTune").disabled=tuning}
+ const tuning=Date.now()-tuneAt<5000;$("rigTune").textContent=t(tuning?"rigTuning":"rigTune");$("rigTune").disabled=tuning;$("rigTune").title=t("rigTuneD");
+ $("rigTip").textContent=t(rigEdit?"rigGoP":"rigTip");$("rigUnit").title=t("rigGoP")}
 function paintLink(){const lamp=$("linkLamp"),st=$("linkState"),d=$("linkDetail");if(!S){lamp.className="lamp";st.textContent="…";d.textContent="";$("rig").hidden=true;return}
  $("ver").textContent=(S.version||"")+" · "+t(S.signed?"signedY":"signedN");$("svc").textContent=S.service?t("svcOn"):"";$("lkey").placeholder=S.linkKeySet?t("lkeySaved"):"";
  const heard=S.link=="ready"||S.link=="waiting";$("bufNow").textContent=heard&&S.delay?t("bufNow").replace("{n}",S.delay):"";
@@ -475,12 +499,20 @@ function slide(k,save){const q=live[k]||(live[k]={busy:false,next:null});const d
 for(const k of SLIDERS){$(k).oninput=()=>{touched[k]=Date.now();show();slide(k,false)};$(k).onchange=()=>{touched[k]=Date.now();slide(k,true)}}
 for(const k of SEGS)$(k).querySelectorAll("button").forEach(b=>b.onclick=()=>{touched[k]=Date.now();cur[k]=+b.dataset.v;show();post("/api/settings",{[k]:cur[k],save:1}).catch(()=>{})});
 $("rigMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.mode=+b.dataset.v;paintRig();post("/api/radio",{mode:b.dataset.v}).catch(()=>{})});
-for(const[label,d]of[["−1 kHz",-1000],["−100 Hz",-100],["+100 Hz",100],["+1 kHz",1000]]){const b=document.createElement("button");b.type="button";b.className="quiet";b.style.padding=".55rem 0";b.textContent=label;b.onclick=()=>rigFreq(rigNow()+d);$("rigSteps").append(b)}
-for(const band of BANDS){const b=document.createElement("button");b.type="button";b.className="quiet bandb";b.style.padding=".55rem 0";b.dataset.b=band[0];b.textContent=band[0]+" m";
+const rigNudge=d=>rigFreq(Math.round(rigNow()/10)*10+d*rigStep);
+for(const[id,d]of[["rigDn",-1],["rigUp",1]]){const b=$(id);let hold=0,rep=0;const stop=()=>{clearTimeout(hold);clearInterval(rep)};
+ b.onpointerdown=e=>{e.preventDefault();rigNudge(d);hold=setTimeout(()=>rep=setInterval(()=>rigNudge(d),130),400)};b.onpointerup=b.onpointerleave=b.onpointercancel=stop}
+$("rigDial").addEventListener("wheel",e=>{if(rigEdit)return;e.preventDefault();rigNudge(e.deltaY<0?1:-1)},{passive:false});
+$("rigDial").onkeydown=e=>{if(rigEdit)return;const k=e.key;if(k=="ArrowUp"||k=="ArrowDown"){e.preventDefault();rigNudge(k=="ArrowUp"?1:-1)}
+ else if(k=="ArrowLeft"||k=="ArrowRight"){e.preventDefault();rigStep=Math.min(1e7,Math.max(10,k=="ArrowLeft"?rigStep*10:rigStep/10));paintRig()}};
+for(const band of BANDS){const b=document.createElement("button");b.type="button";b.dataset.b=band[0];b.textContent=band[0];
  b.onclick=()=>{const cw=S.mode==3||S.mode==7,home=cw?band[3]:band[4];let was=0;try{was=+localStorage["fnBand"+band[0]]||0}catch(e){}
   rigFreq(bandOf(rigNow())==band||!was?home:was)};$("rigBands").append(b)}
-$("rigGoB").onclick=()=>{let v=parseFloat($("rigGo").value.replace(",","."));if(!(v>0))return $("rigGo").focus();rigFreq(v>=1000?v*1e3:v*1e6);$("rigGo").value=""};
-$("rigGo").onkeydown=e=>{if(e.key=="Enter")$("rigGoB").click()};
+// Typing a frequency: press "MHz", type, Enter. 7.030 and 7030 both mean 7.030 MHz.
+const rigType=on=>{rigEdit=on;paintRig();if(on){$("rigGo").value="";$("rigGo").focus()}};
+$("rigUnit").onclick=()=>rigType(!rigEdit);
+$("rigGo").onkeydown=e=>{if(e.key=="Escape")rigType(false);if(e.key!="Enter")return;const v=parseFloat($("rigGo").value.replace(",","."));if(v>0)rigFreq(v>=1000?v*1e3:v*1e6);rigType(false)};
+$("rigGo").onblur=()=>{if(rigEdit)rigType(false)};
 $("rigTune").onclick=()=>{tuneAt=Date.now();paintRig();post("/api/radio",{tune:1}).catch(()=>{})};
 $("bufTryB").onclick=()=>{$("buffer").value=$("bufTryB").dataset.ms;touched.buffer=Date.now();show();slide("buffer",true)};
 $("beep").onclick=()=>post("/api/settings",{beep:1}).catch(()=>{});
@@ -576,6 +608,8 @@ $("tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.tab))
 document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
 $("h_target").querySelectorAll("button").forEach(b=>b.onclick=()=>$("target").querySelector('[data-v="'+b.dataset.v+'"]').click());
 for(const k of["wpm","volume"]){$("h_"+k).oninput=()=>{$(k).value=$("h_"+k).value;$(k).oninput()};$("h_"+k).onchange=()=>{$(k).value=$("h_"+k).value;$(k).onchange()}}
+for(const tabEl of document.querySelectorAll(".tab")){let g=null;for(const e of[...tabEl.children]){if(e.tagName=="H2"||!g||g.dataset.done){g=document.createElement("div");g.className="grp";tabEl.insertBefore(g,e)}
+  g.append(e);if(e.tagName!="H2")g.dataset.done=1}}
 go(["home","key","net","box"].includes(location.hash.slice(1))?location.hash.slice(1):"home",true);
 texts();status();setInterval(status,1500);
 </script>

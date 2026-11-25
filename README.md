@@ -273,8 +273,9 @@ also shows how strong the signal is.
 ## The radio from the box
 
 Keying is only on while the radio is in CW. So that you do not need wfview in front of you to get on the air,
-the box's overview has a card for the radio: its frequency and mode, buttons for **CW**, **USB** and **LSB**,
-steps of 100 Hz and 1 kHz, a frequency to type, a button for each band from 160 to 6 m, and **Tune the antenna**,
+the box's overview has a card for the radio. The frequency reads as on a radio's display: pick a digit and step
+it with **+** and **−** (hold them to keep going), the mouse wheel or the arrow keys, or press **MHz** and type
+one. Beside it are **CW**, **USB** and **LSB**, a button for each band from 160 to 6 m, and **Tune antenna**,
 which starts the radio's antenna tuner (the radio transmits while it tunes). A band button goes to where you
 last were on that band (the page remembers, per browser), or to the band's CW or phone part the first time.
 
