@@ -398,6 +398,18 @@ class LinkTests(unittest.TestCase):
         world.run(world.now + 3_000_000)
         self.assertFalse(rig.cw)
 
+    def test_a_refused_client_does_not_silence_the_answers_to_the_real_one(self):
+        world = World()
+        world.link_up()
+        other = proto.pack_key(KEY, proto.KeyPacket(0, 0, 0x9999, 1, 0, 0, 0, 0, []))   # no fresh nonce: refused
+        heard = []
+        for step in range(40):                    # the refused client sends just before every packet of ours
+            world.receiver.on_packet(other, ("other", 3), world.now)
+            data = world.client.packet(world.client_time(world.now))
+            heard += world.receiver.on_packet(data, ("client", 1), world.now)
+            world.now += 50_000
+        self.assertGreaterEqual(len(heard), 15)   # one answer every 100 ms, as without the other client
+
 
 if __name__ == "__main__":
     unittest.main()

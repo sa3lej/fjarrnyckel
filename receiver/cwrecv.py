@@ -150,7 +150,8 @@ class Receiver:
         if self.muted:
             flags |= proto.ST_MUTED
         self.status_seq += 1
-        self.last_status = now
+        if not nonce_bad:
+            self.last_status = now              # an answer to a refused packet does not count as the regular one
         return proto.pack_status(self.key, proto.Status(
             flags, mode, self.session or 0, self.status_seq, self.echo_t, max(0, now - self.echo_arrival),
             self.nonce, freq, (self.delay_us + self.extra_us) // 1000, self.late, self.lost, self.rx_pkts,
