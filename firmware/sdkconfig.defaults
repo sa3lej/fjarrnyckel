@@ -31,6 +31,10 @@ CONFIG_MBEDTLS_CHACHA20_C=y
 CONFIG_MBEDTLS_POLY1305_C=y
 CONFIG_MBEDTLS_CHACHAPOLY_C=y
 CONFIG_MBEDTLS_HKDF_C=y
+# TLS sessions keep their ~20 kB of buffers in PSRAM. The box holds two all the time (Tailscale's control server and
+# its relay) and a third while it looks for updates; in internal RAM that left 6 kB free at the lowest (seen
+# 2026-11-26 on 0.15.2, right after start), so close to the edge that one more connection could fail or crash.
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096
 # Tailscale relay region the box starts in before it knows better: 28 = Helsinki. MicroLink keeps one relay
