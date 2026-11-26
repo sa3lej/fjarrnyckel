@@ -151,7 +151,8 @@ The receiver also lets go of the key by itself when:
 with its version), one whenever it lets go of the key by itself (`"released"`, with the reason), and one a
 minute after each stretch of keying (`"keying"`): how many key movements were played, how far the length of
 each mark was from the original (`mark_length_error_ms`) and how far from its planned moment each movement was
-played (`actuation_error_ms`), as median, 99th percentile and largest.
+played (`actuation_error_ms`), as median, 99th percentile and largest. The counts in that line (`late`, `lost`,
+`aborts`, `packets`, `rejected`) are for that stretch alone.
 
 ## Test without transmitting
 

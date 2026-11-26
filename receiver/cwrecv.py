@@ -119,6 +119,7 @@ class Receiver:
         self.lost = 0
         self.aborts = collections.Counter()
         self.played = []                       # (edge time, actual time, down, planned time) since the last report
+        self.reported = {}                     # the totals at the last report, so each report covers its own stretch
 
     # ---- helpers -----------------------------------------------------------
     def _new_nonce(self):
@@ -358,8 +359,16 @@ class Receiver:
         return min(deadlines) if deadlines else None
 
     def take_summary(self):
-        """The summary of the edges played since the last call; those edges are then forgotten."""
+        """The summary of the stretch since the last call: its edges, and what was counted while they were played.
+        The edges are then forgotten and the counts start again; the totals the box is told stay as they are."""
         result = self.summary()
+        now = {name: result[name] for name in ("packets", "rejected", "late", "lost")}
+        for name, total in now.items():
+            result[name] = total - self.reported.get(name, 0)
+        before = self.reported.get("aborts", {})
+        result["aborts"] = {reason: count - before.get(reason, 0) for reason, count in self.aborts.items()
+                            if count != before.get(reason, 0)}
+        self.reported = {**now, "aborts": dict(self.aborts)}
         self.played = []
         return result
 

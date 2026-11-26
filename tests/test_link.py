@@ -360,6 +360,24 @@ class LinkTests(unittest.TestCase):
         world.run(end + 300_000)
         self.assertEqual(world.receiver.take_summary()["edges_played"], len(plan))
 
+    def test_a_report_counts_its_own_stretch(self):
+        # Late, lost and released belong to the stretch they happened in; the totals the box is told keep growing.
+        world = World()
+        world.link_up()
+        _, end, _ = world.key("TEST")
+        world.run(end + 300_000)
+        world.receiver.late += 7
+        world.receiver.aborts["not in CW"] += 1
+        first = world.receiver.take_summary()
+        self.assertEqual((first["late"], first["lost"], first["aborts"]), (7, 0, {"not in CW": 1}))
+        _, end, _ = world.key("E")
+        world.run(end + 300_000)
+        world.receiver.late += 1
+        second = world.receiver.take_summary()
+        self.assertEqual((second["late"], second["lost"], second["aborts"]), (1, 0, {}))
+        self.assertEqual(world.receiver.late, 8)
+        self.assertEqual(world.receiver.summary()["late"], 8)
+
     def test_the_box_can_put_the_radio_in_cw_once_per_asking(self):
         rig = Rig(cw=False)
         world = World(rig=rig)
