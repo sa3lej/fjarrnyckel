@@ -87,7 +87,8 @@ int net_scan(char *json, int size);       // writes a JSON array of networks in 
 typedef enum { LINK_OFF, LINK_NO_WIFI, LINK_NO_TAILSCALE, LINK_NOT_FOUND, LINK_NO_ANSWER, LINK_WAITING, LINK_READY } link_state_t;
 typedef struct {
   link_state_t state;
-  int rtt_ms;            // round trip to the receiver, -1 when unknown
+  int rtt_ms;            // the usual round trip to the receiver (median of the last readings), -1 when unknown
+  int rtt_max_ms;        // the longest round trip of the last minute, -1 when unknown
   uint32_t freq_hz;      // the radio's frequency, 0 when unknown
   bool rig_valid, cw;    // the receiver knows the radio's mode; the radio is in CW
   uint16_t late, lost;   // key edges that reached the receiver too late, or not at all

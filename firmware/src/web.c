@@ -110,13 +110,13 @@ static esp_err_t get_status(httpd_req_t *req) {
     "{\"version\":\"%s\",\"wifi\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"rssi\":%d,\"nets\":%s,\"joinFailed\":\"%s\",\"joinReason\":\"%s\",\"reason\":\"%s\",\"setupNetwork\":\"%s\","
     "\"keyType\":%d,\"swap\":%d,\"iambic\":%d,\"wpm\":%d,\"tone\":%d,\"volume\":%d,\"hp\":%d,\"keyDown\":%s,"
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
-    "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,\"buffer\":%d,\"delay\":%u,\"recv\":%d,\"recvLatest\":%d,\"mode\":%d,\"rig\":%s,\"rigModel\":\"%s\",\"rigCaps\":%d,\"rigBands\":%d,\"keyN\":%lu,\"keyLate\":%u,\"keyLost\":%u,\"keyPeak\":%u,"
+    "\"link\":\"%s\",\"rtt\":%d,\"rttMax\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,\"buffer\":%d,\"delay\":%u,\"recv\":%d,\"recvLatest\":%d,\"mode\":%d,\"rig\":%s,\"rigModel\":\"%s\",\"rigCaps\":%d,\"rigBands\":%d,\"keyN\":%lu,\"keyLate\":%u,\"keyLost\":%u,\"keyPeak\":%u,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,\"tsRegion\":%u,\"tsHome\":%d,\"tsPeerHome\":%d,"
     "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s,\"radio\":%d,\"radioSpk\":%d,\"bright\":%d,\"usbAudio\":%s,\"ua\":%s,\"mem\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_rssi(), nets, joined, net_join_reason(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, settings.hp_volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
-    links[l.state], l.rtt_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false", settings.link_delay, l.delay_ms, l.receiver, CWL2_RECEIVER_LATEST, l.mode, l.has_radio ? "true" : "false", model, l.caps, l.bands, (unsigned long)l.k_edges, l.k_late, l.k_lost, l.k_peak_ms,
+    links[l.state], l.rtt_ms, l.rtt_max_ms, (unsigned long)l.freq_hz, l.rig_valid ? "true" : "false", l.cw ? "true" : "false", l.late, l.lost, l.tailscale ? "true" : "false", settings.link_delay, l.delay_ms, l.receiver, CWL2_RECEIVER_LATEST, l.mode, l.has_radio ? "true" : "false", model, l.caps, l.bands, (unsigned long)l.k_edges, l.k_late, l.k_lost, l.k_peak_ms,
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false", settings.ts_region, ts_home_region(), ts_peer_region(),
     u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false",
     u.is_signed ? "true" : "false", service_mode() ? "true" : "false", !settings.led_off, !settings.tones_off,

@@ -56,6 +56,39 @@ static uint16_t k_base_late, k_base_lost, k_peak, seen_late, seen_lost;
 static bool k_any, seen_counts, k_base_due;
 void link_restart(void) { generation++; }
 
+// The round trip as the page shows it. One reading says little on a path with short spikes, so the page gets the
+// usual one (the median of the last readings) and the longest of the last minute (kept as twelve 5 s slots).
+#define RTT_KEEP 64
+#define RTT_SLOTS 12
+#define RTT_SLOT_US 5000000
+static uint32_t rtt_last[RTT_KEEP], rtt_peak[RTT_SLOTS];
+static int rtt_n, rtt_at;
+static int64_t rtt_slot;
+static uint64_t rtt_echo;                // the reading already counted: a status that echoes nothing new adds nothing
+static void rtt_forget(void) { rtt_n = rtt_at = 0; memset(rtt_peak, 0, sizeof rtt_peak); }
+static void rtt_add(int64_t us, int64_t now) {
+  uint32_t ms = us < 0 ? 0 : (uint32_t)((us + 500) / 1000);
+  int64_t slot = now / RTT_SLOT_US;
+  if (slot - rtt_slot >= RTT_SLOTS) memset(rtt_peak, 0, sizeof rtt_peak);
+  else for (int64_t k = rtt_slot + 1; k <= slot; k++) rtt_peak[k % RTT_SLOTS] = 0;
+  rtt_slot = slot;
+  if (ms > rtt_peak[slot % RTT_SLOTS]) rtt_peak[slot % RTT_SLOTS] = ms;
+  rtt_last[rtt_at] = ms; rtt_at = (rtt_at + 1) % RTT_KEEP;
+  if (rtt_n < RTT_KEEP) rtt_n++;
+}
+static int rtt_usual(void) {
+  if (!rtt_n) return -1;
+  uint32_t v[RTT_KEEP]; memcpy(v, rtt_last, sizeof v);
+  for (int a = 1; a < rtt_n; a++) { uint32_t x = v[a]; int b = a; while (b && v[b - 1] > x) { v[b] = v[b - 1]; b--; } v[b] = x; }
+  return (int)v[rtt_n / 2];
+}
+static int rtt_longest(void) {
+  if (!rtt_n) return -1;
+  uint32_t m = 0;
+  for (int k = 0; k < RTT_SLOTS; k++) if (rtt_peak[k] > m) m = rtt_peak[k];
+  return (int)m;
+}
+
 void link_edge(int64_t t_us, bool down) {
   if (!edges) return;
   edge_t e = { t_us, down };
@@ -63,7 +96,7 @@ void link_edge(int64_t t_us, bool down) {
   if (task) xTaskNotifyGive(task);         // wake the link at once: the edge goes out without waiting for the next tick
 }
 
-static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; i.delay_ms = 0; i.receiver = 0; i.has_radio = false; } info = i; } }
+static void set_state(link_state_t s) { link_info_t i = info; if (i.state != s) { i.state = s; if (s < LINK_WAITING) { i.rtt_ms = i.rtt_max_ms = -1; i.freq_hz = 0; i.rig_valid = i.cw = i.tailscale = false; i.delay_ms = 0; i.receiver = 0; i.has_radio = false; } info = i; } }
 
 // The receiver is reached either straight over the network (a UDP socket) or through Tailscale.
 typedef struct { int sock; microlink_udp_socket_t *ts; uint32_t ts_ip; uint16_t port; } path_t;
@@ -116,6 +149,7 @@ static void session(uint32_t gen) {
   }
   cwl2_init(&client, (const uint8_t *)settings.link_key, strlen(settings.link_key), esp_random() | 1);
   xQueueReset(edges); xQueueReset(radio);
+  rtt_forget();
   ESP_LOGI(TAG, "talking to the receiver at %s port %u%s", settings.link_host, settings.link_port, path.ts ? " through Tailscale" : "");
   int64_t heard = 0;
   set_state(LINK_NO_ANSWER);
@@ -146,6 +180,7 @@ static void session(uint32_t gen) {
       now = esp_timer_get_time();
       if (!cwl2_on_status(&client, buf, (size_t)n, (uint64_t)now)) { cwl2_on_info(&client, buf, (size_t)n); continue; }
       heard = now;
+      if (client.rtt_us >= 0 && client.status.echo_t != rtt_echo) { rtt_echo = client.status.echo_t; rtt_add(client.rtt_us, now); }
       const cwl2_status_t *st = &client.status;
       seen_late = st->late; seen_lost = st->lost; seen_counts = true;
       if (k_base_due) { k_base_due = false; k_base_late = st->late; k_base_lost = st->lost; }
@@ -153,7 +188,7 @@ static void session(uint32_t gen) {
       if (st->lost < k_base_lost) k_base_lost = 0;
       if (k_any && now - k_last_edge < STRETCH_GAP_US && st->delay_ms > k_peak) k_peak = st->delay_ms;
       link_info_t i = { .state = cwl2_linked(&client) ? LINK_READY : LINK_WAITING,
-        .rtt_ms = client.rtt_us < 0 ? -1 : (int)((client.rtt_us + 500) / 1000), .freq_hz = client.status.freq_hz,
+        .rtt_ms = rtt_usual(), .rtt_max_ms = rtt_longest(), .freq_hz = client.status.freq_hz,
         .rig_valid = client.status.flags & CWL2_ST_RIG_VALID, .cw = client.status.flags & CWL2_ST_CW_MODE,
         .late = client.status.late, .lost = client.status.lost, .tailscale = path.ts != NULL,
         .delay_ms = client.status.delay_ms, .receiver = client.status.receiver, .mode = client.status.mode,
