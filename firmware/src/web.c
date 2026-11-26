@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "esp_random.h"
 #include "psa/crypto.h"
 #include "fn.h"
@@ -94,6 +95,15 @@ static esp_err_t get_status(httpd_req_t *req) {
   json_text(host, sizeof host, settings.link_host);
   link_info_t l = link_info();
   char model[110]; json_text(model, sizeof model, l.model);
+  // Memory as it is now and at its lowest since the box started, for internal RAM (what Wi-Fi, TLS and the tasks
+  // need) and PSRAM (Tailscale's buffers), plus the largest single free block of internal RAM.
+  const uint32_t in_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+  char mem[200];
+  snprintf(mem, sizeof mem, "{\"inFree\":%u,\"inMin\":%u,\"inBlock\":%u,\"inTotal\":%u,\"psFree\":%u,\"psMin\":%u,\"psTotal\":%u,\"up\":%lld}",
+           (unsigned)heap_caps_get_free_size(in_caps), (unsigned)heap_caps_get_minimum_free_size(in_caps),
+           (unsigned)heap_caps_get_largest_free_block(in_caps), (unsigned)heap_caps_get_total_size(in_caps),
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM), (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM),
+           (unsigned)heap_caps_get_total_size(MALLOC_CAP_SPIRAM), (long long)(esp_timer_get_time() / 1000000));
   char ua[480]; usb_audio_report(ua, sizeof ua);
   update_info_t u = update_info();
   snprintf(body, sizeof body,
@@ -102,7 +112,7 @@ static esp_err_t get_status(httpd_req_t *req) {
     "\"linkHost\":\"%s\",\"linkPort\":%u,\"linkKeySet\":%s,"
     "\"link\":\"%s\",\"rtt\":%d,\"freq\":%lu,\"rigValid\":%s,\"cw\":%s,\"late\":%u,\"lost\":%u,\"linkTailscale\":%s,\"buffer\":%d,\"delay\":%u,\"recv\":%d,\"recvLatest\":%d,\"mode\":%d,\"rig\":%s,\"rigModel\":\"%s\",\"rigCaps\":%d,\"rigBands\":%d,\"keyN\":%lu,\"keyLate\":%u,\"keyLost\":%u,\"keyPeak\":%u,"
     "\"ts\":\"%s\",\"tsOn\":%s,\"tsIp\":\"%s\",\"tsLogin\":\"%s\",\"tsKeySet\":%s,\"tsCrashed\":%s,\"tsRegion\":%u,\"tsHome\":%d,\"tsPeerHome\":%d,"
-    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s,\"radio\":%d,\"radioSpk\":%d,\"bright\":%d,\"usbAudio\":%s,\"ua\":%s}",
+    "\"latest\":\"%s\",\"upChecked\":%s,\"upChecking\":%s,\"upAvailable\":%s,\"upProgress\":%d,\"upError\":\"%s\",\"lock\":%s,\"signed\":%s,\"service\":%s,\"led\":%d,\"tones\":%d,\"target\":%d,\"usbRaw\":%d,\"usb\":%s,\"usbMidi\":%s,\"radio\":%d,\"radioSpk\":%d,\"bright\":%d,\"usbAudio\":%s,\"ua\":%s,\"mem\":%s}",
     firmware_version(), names[net_state()], ssid, net_ip(), net_rssi(), nets, joined, net_join_reason(), net_fail_reason(), net_ap_name(),
     settings.key_type, settings.swap, settings.iambic_b, settings.wpm, settings.tone_hz, settings.volume, settings.hp_volume, key_down ? "true" : "false",
     host, settings.link_port, settings.link_key[0] ? "true" : "false",
@@ -110,7 +120,7 @@ static esp_err_t get_status(httpd_req_t *req) {
     tss[ts_state()], settings.ts_on ? "true" : "false", ts_ip(), login, settings.ts_key[0] ? "true" : "false", ts_crashed() ? "true" : "false", settings.ts_region, ts_home_region(), ts_peer_region(),
     u.latest, u.checked ? "true" : "false", u.checking ? "true" : "false", u.available ? "true" : "false", u.progress, u.error, settings.page_lock ? "true" : "false",
     u.is_signed ? "true" : "false", service_mode() ? "true" : "false", !settings.led_off, !settings.tones_off,
-    settings.key_target, settings.usb_raw, usb_connected() ? "true" : "false", usb_midi_mode() ? "true" : "false", settings.radio_volume, settings.radio_spk, settings.led_level >= 1 && settings.led_level <= 100 ? settings.led_level : 10, usb_audio_playing() ? "true" : "false", ua);
+    settings.key_target, settings.usb_raw, usb_connected() ? "true" : "false", usb_midi_mode() ? "true" : "false", settings.radio_volume, settings.radio_spk, settings.led_level >= 1 && settings.led_level <= 100 ? settings.led_level : 10, usb_audio_playing() ? "true" : "false", ua, mem);
   httpd_resp_set_type(req, "application/json");
   httpd_resp_set_hdr(req, "Cache-Control", "no-store");
   return httpd_resp_sendstr(req, body);
