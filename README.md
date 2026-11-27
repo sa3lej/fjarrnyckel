@@ -54,8 +54,8 @@ Work in progress. Honest state of each part:
 ## Build your own
 
 The box is built from ready-made boards, a printed enclosure and an evening of soldering. No programming:
-the firmware is installed from the browser. The three charts (pins, wiring, layout) are exact; follow them.
-The step pictures are illustrations that show how a step is done; they are not to scale.
+the firmware is installed from the browser. The three charts (pins, wiring, layout) and the IN-OUT drawing are exact; follow them.
+The other step pictures are illustrations that show how a step is done; they are not to scale.
 
 ### 1. What you need
 
@@ -109,9 +109,10 @@ into a post under the lid until it is flush. Let it cool before you move on.
 ![The ESP32 board: pins used](docs/build/board-pins.png)
 
 **Bridge the IN-OUT pads.** On this board the 5Vin pin (J1 pin 21) only gives out the USB 5 V when the
-two small pads marked IN-OUT are joined. Melt a small blob of solder across them.
+two small pads marked IN-OUT are joined. They sit just inside the left pin row, one above the other, level
+with GPIO11 and GPIO12 (J1 pins 17 and 18). Melt a small blob of solder across them.
 
-![The IN-OUT pads before and after bridging](docs/build/step-4-bridge.jpg)
+![The IN-OUT pads before and after bridging](docs/build/step-4-bridge.png)
 
 
 **Check it:** plug USB in and measure between 5Vin (J1-21) and GND (J1-22). You should see about 5 V. With
@@ -156,8 +157,9 @@ in the chart. Then solder the outputs on the opposite edge:
 
 ![An amplifier standing as in the box: straight header, five plugs, GAIN and SD left open](docs/build/step-5-amplifier.jpg)
 
-The pins may come out of either face of the amplifier board; what matters is that they point towards the
-speaker when the board stands in its posts.
+The picture shows the board from its component side, as in the author's build: the header is soldered so
+that the pins come out of that side, **−** is the left output pad and **+** the right one. Go by the
+markings printed on your own board if it differs.
 
 - speaker amplifier: **+** to the speaker's red wire, **−** to its black wire;
 - headphone amplifier: **+** through the 220 Ω resistor to the PHONES socket's **tip**, with tip and
