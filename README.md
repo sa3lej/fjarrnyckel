@@ -54,7 +54,8 @@ Work in progress. Honest state of each part:
 ## Build your own
 
 The box is built from ready-made boards, a printed enclosure and an evening of soldering. No programming:
-the firmware is installed from the browser. The drawings below are exact; follow them.
+the firmware is installed from the browser. The three charts (pins, wiring, layout) are exact; follow them.
+The step pictures are illustrations that show how a step is done; they are not to scale.
 
 ### 1. What you need
 
@@ -100,6 +101,8 @@ opening.
 Put the lid upside down. Heat each of the four brass inserts with the iron and press it straight down
 into a post under the lid until it is flush. Let it cool before you move on.
 
+![Pressing a heat-set insert into a post under the lid](docs/build/step-3-inserts.jpg)
+
 
 ### 4. Prepare and test the ESP32 board
 
@@ -107,6 +110,8 @@ into a post under the lid until it is flush. Let it cool before you move on.
 
 **Bridge the IN-OUT pads.** On this board the 5Vin pin (J1 pin 21) only gives out the USB 5 V when the
 two small pads marked IN-OUT are joined. Melt a small blob of solder across them.
+
+![The IN-OUT pads before and after bridging](docs/build/step-4-bridge.jpg)
 
 
 **Check it:** plug USB in and measure between 5Vin (J1-21) and GND (J1-22). You should see about 5 V. With
@@ -149,6 +154,11 @@ is where the plugs go. Then solder the straight 7-pin header to each amplifier. 
 unconnected. Push Dupont plugs onto the five pins you use (LRC, BCLK, DIN, GND, Vin), cut the other ends and solder them to the board as
 in the chart. Then solder the outputs on the opposite edge:
 
+![An amplifier standing as in the box: straight header, five plugs, GAIN and SD left open](docs/build/step-5-amplifier.jpg)
+
+The pins may come out of either face of the amplifier board; what matters is that they point towards the
+speaker when the board stands in its posts.
+
 - speaker amplifier: **+** to the speaker's red wire, **−** to its black wire;
 - headphone amplifier: **+** through the 220 Ω resistor to the PHONES socket's **tip**, with tip and
   **ring** joined by a short wire so you hear it in both ears; **−** to the PHONES socket's **sleeve**.
@@ -164,6 +174,8 @@ lug to the band behind it, the body to the long part nearest the cable. Then sol
 
 - KEY: tip to J1-4 (GPIO4), ring to J1-5 (GPIO5), sleeve to J2-21 (GND);
 - PHONES: as above, from the headphone amplifier.
+
+![Tip, ring and sleeve on the plug and the socket, and the PHONES wiring](docs/build/step-5-sockets.jpg)
 
 Cover every joint with heat-shrink.
 
@@ -199,10 +211,13 @@ close the box.
 
 1. Stick a small piece of 1 mm foam tape on each of the four pads around the speaker frame inside the
    lid, and the 0.5 mm foam pad on the end of the short post that rests on the board's metal can.
-2. Drop the lens into the light window from above; a tiny drop of glue at its edge keeps it in.
+2. Turn the lid the right way up and drop the lens into the light window from the outside; a tiny drop of
+   glue at its edge keeps it in.
 3. Lower the lid straight down: the four small pins find the speaker's corner holes.
 4. Turn the box over and fit the four M3 × 8 screws. Stop as soon as they are snug.
 5. Stick the four feet into the round seats underneath.
+
+![Foam pads inside the lid, the lens from the outside, screws and feet underneath](docs/build/step-7-close.jpg)
 
 
 ### 8. Start it
