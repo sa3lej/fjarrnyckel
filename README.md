@@ -19,9 +19,9 @@ hand is lost on the way. Fjärrnyckel carries the timing.
   speaker. It reads your key, plays the sidetone at once, and sends every key
   movement with the exact time it happened.
 - **The receiver** runs on the computer by the radio. It replays each movement
-  a fixed, short moment later and keys the radio over its USB cable. Network
-  jitter is absorbed; dots, dashes and your own rhythm are reproduced as you
-  made them.
+  a short moment later (the buffer, 25 ms to begin with) and keys the radio over
+  its USB cable. Network jitter is absorbed; dots, dashes and your own rhythm are
+  reproduced as you made them.
 - **The link** between them is signed with a shared key, so only your box can
   key your radio, and the receiver lets go of the key if the link is lost.
 
@@ -301,6 +301,30 @@ keying went (a stretch ends after a minute without a key movement): how many key
 them were late or lost. When some were late it offers the buffer that would have covered them, with one button
 to set it. It also shows the buffer the receiver is using right now, which is longer for a while after late
 arrivals.
+
+The card also shows the round trip to the receiver: the usual one, and the longest of the last minute when
+that is longer (from 0.15.4). Short spikes in the round trip are what make key movements arrive late.
+
+A late movement is never dropped. A late key-down is played as soon as it arrives and keeps its length; the
+gap before it is a little longer. A late key-up is played at once, so that mark is a little longer. Either
+way the receiver then raises its buffer by the lateness, and lets it shrink again a quarter at a time in the
+pauses between words.
+
+### What it measures
+
+From the author's station on 2026-11-26: box on home Wi-Fi, IC-7300 with a Raspberry Pi 4 and wfview at
+another site, Tailscale between them on a direct path (no relay), buffer on 25 ms.
+
+| | |
+|---|---|
+| Round trip, usual | about 29 ms (99 % within 60–90 ms) |
+| Key to radio (estimated) | about 40 ms usually (half the round trip plus the buffer), up to about 70 ms after late arrivals |
+| Three stretches of keying | 972 key movements: 12 late (1.2 %), 0 lost |
+| Length of each mark at the radio (two logged stretches) | median exact; 99 % within 7.5–22 ms; worst 28 ms |
+| Moment the radio is keyed, against plan | within 1.5 ms |
+
+Your numbers depend on your network. If the page reports late movements and the extra delay does not bother
+you, a fixed buffer of 50–60 ms should make them rare.
 
 The same card shows the receiver's version, and says so when the receiver is older than the box's firmware
 expects. Update it on the computer by the radio: `git pull` in its `fjarrnyckel` folder, then
